@@ -13,7 +13,7 @@
 | 04.3 | UFH-loop migration to systemId | 🟢 closed (2026-04-26) | — | Исправлен интерфейс `UfhLoopStoreState` в migration.ts, mock в тестах приведён к реальному API, добавлен регрессионный тест. См. `phases/04.3-ufh-loop-migration/STATUS.md`. |
 | 05 | Tab «Сводка» | 🟢 closed (2026-04-26) | — | `SummaryTab.tsx` — read-only сводка: объект, теплопотери, системы, приборы, UFH. Нормативная подпись СП 50/60/131. См. `phases/05-summary-tab/STATUS.md`. |
 | 06 | Экспорт-фундамент | 🟢 closed (2026-04-26) | — | `src/export/` — types, формат-каталог, рамка+штамп, exportStore (persist+shapeMerge), 5 builders, PreviewModal, useExportPreview, кнопки в 5 табах. См. `phases/06-export-foundation/STATUS.md`. |
-| 07 | Экспорт PDF | 🔴 not-started | 06 | jsPDF поверх фундамента 06. |
+| 07 | Экспорт PDF | 🟢 closed (2026-04-26) | 06 | jsPDF backend, ГОСТ-рамка/штамп натиано, шрифты Roboto/DejaVu Serif (TTF, кириллица), лого в штампе, выбор шрифта в UI. Реальный экспорт работает. См. `phases/07-export-pdf/STATUS.md`. |
 | 08 | Экспорт Excel | 🔴 not-started | 06 | ExcelJS поверх фундамента 06. |
 | 09 | Экспорт Word | 🔴 not-started | 06 | docx поверх фундамента 06. |
 | 10 | UAT M1 + деплой | 🔴 not-started | 07, 08, 09 | Сквозной прогон через Chromium, релиз на Vercel. |
