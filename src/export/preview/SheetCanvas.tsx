@@ -1,32 +1,50 @@
 /**
- * Phase 06 — single-sheet preview rendered as SVG.
+ * Phase 06 + 07.1 — single-sheet preview rendered as SVG.
  * 1mm = 1 SVG unit (viewBox in mm). CSS scales to pixel size.
  *
- * Geometry must match what fold-out adapters (PDF/Excel/Word) will draw.
+ * Geometry must match what fold-out adapters (PDF/Excel/Word) will draw —
+ * see backends/pdf.ts for the source of truth.
  */
 
-import type { Sheet, DocumentModel, Stamp, ContentBlock, TableCell } from '../types'
-import { dimensions, effectiveOrientation } from '../sheet/formats'
+import type { Sheet, DocumentModel, Stamp, ContentBlock, TableCell, StampMode } from '../types'
+import { dimensions, effectiveOrientation, formatStampMark } from '../sheet/formats'
 import { computeFrame, FRAME_LINE_THICK_MM, FRAME_LINE_THIN_MM } from '../sheet/frame'
-import { computeStampPosition, formatStampDate, formatSheetCounter } from '../sheet/stamp'
+import {
+  computeStampPosition,
+  STAMP_GEOMETRY,
+  STAMP_HEIGHT_MM,
+  buildDesignationCode,
+  signerDate
+} from '../sheet/stamp'
 
 interface SheetCanvasProps {
   readonly model: DocumentModel
   readonly sheet: Sheet
-  readonly cssWidthPx?: number  // визуальный размер в превью; если не задан — 100% контейнера
+  readonly cssWidthPx?: number
 }
 
 const FONT = 'Arial, "PT Sans Caption", sans-serif'
+const SIDEBAR_WIDTH_MM = 7
+const FOOTER_MIN_HEIGHT_MM = 8
+const FORMAT_MARK_GAP_MM = 1.5
 
 export function SheetCanvas({ model, sheet, cssWidthPx }: SheetCanvasProps) {
   const orient = effectiveOrientation(model.format, model.orientation)
   const dims = dimensions(model.format, orient)
   const frame = computeFrame(dims.widthMm, dims.heightMm)
   const stamp = computeStampPosition(frame)
+  const mode: StampMode = model.stampMode ?? 'full'
 
   const ratio = dims.heightMm / dims.widthMm
   const wPx = cssWidthPx ?? 800
   const hPx = wPx * ratio
+
+  const contentBottom =
+    mode === 'full'
+      ? frame.yMm + frame.heightMm - STAMP_HEIGHT_MM - 2
+      : mode === 'minimal-footer'
+        ? frame.yMm + frame.heightMm - FOOTER_MIN_HEIGHT_MM - 2
+        : frame.yMm + frame.heightMm - 4
 
   return (
     <svg
@@ -36,8 +54,8 @@ export function SheetCanvas({ model, sheet, cssWidthPx }: SheetCanvasProps) {
       style={{ background: 'white', boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Лист (фон, белый) */}
       <rect x={0} y={0} width={dims.widthMm} height={dims.heightMm} fill="white" stroke="#ddd" strokeWidth={FRAME_LINE_THIN_MM} />
+
       {/* Рамка ГОСТ */}
       <rect
         x={frame.xMm} y={frame.yMm}
@@ -45,12 +63,12 @@ export function SheetCanvas({ model, sheet, cssWidthPx }: SheetCanvasProps) {
         fill="none" stroke="black" strokeWidth={FRAME_LINE_THICK_MM}
       />
 
-      {/* Содержимое (HTML через foreignObject — для текста/таблиц) */}
+      {/* Контент */}
       <foreignObject
         x={frame.xMm + 4}
         y={frame.yMm + 4}
         width={frame.widthMm - 8}
-        height={frame.heightMm - stamp.heightMm - 8}
+        height={contentBottom - frame.yMm - 4}
       >
         <div
           style={{
@@ -66,11 +84,40 @@ export function SheetCanvas({ model, sheet, cssWidthPx }: SheetCanvasProps) {
         </div>
       </foreignObject>
 
-      {/* Штамп ГОСТ 2.104 — упрощённый */}
-      <StampBlock stamp={model.stamp} sheetIndex={sheet.index} sheetTotal={sheet.total} pos={stamp} />
+      {/* Маркировка формата (под рамкой справа внизу), для full/minimal */}
+      {mode !== 'none' && (
+        <FormatMark
+          mark={formatStampMark(model.format, model.orientation)}
+          frame={frame}
+          sheetHeightMm={dims.heightMm}
+        />
+      )}
+
+      {mode === 'full' && (
+        <>
+          <SideBar stamp={model.stamp} frame={frame} />
+          <StampForm1
+            stamp={model.stamp}
+            sheetIndex={sheet.index}
+            sheetTotal={sheet.total}
+            pos={stamp}
+          />
+        </>
+      )}
+
+      {mode === 'minimal-footer' && (
+        <FooterLine
+          text={model.footerLine ?? ''}
+          sheetIndex={sheet.index}
+          sheetTotal={sheet.total}
+          frame={frame}
+        />
+      )}
     </svg>
   )
 }
+
+// ─── Content blocks ───────────────────────────────────────────────────────
 
 function BlockView({ block }: { block: ContentBlock }) {
   switch (block.kind) {
@@ -141,83 +188,309 @@ function renderCell(c: TableCell): React.ReactNode {
   return <span style={{ fontWeight: c.bold ? 700 : 400 }}>{c.text}</span>
 }
 
-interface StampBlockProps {
+// ─── Stamp form 1 ──────────────────────────────────────────────────────────
+
+interface StampForm1Props {
   readonly stamp: Stamp
   readonly sheetIndex: number
   readonly sheetTotal: number
   readonly pos: { xMm: number; yMm: number; widthMm: number; heightMm: number }
 }
 
-function StampBlock({ stamp, sheetIndex, sheetTotal, pos }: StampBlockProps) {
+function StampForm1({ stamp, sheetIndex, sheetTotal, pos }: StampForm1Props) {
   const { xMm: x, yMm: y, widthMm: W, heightMm: H } = pos
-  // Упрощённая разбивка: левый блок (подписи) 70мм, средний (наименование) 50мм, правый 65мм
-  const colA = 70, colB = 50
-  const lineH = H / 8
+  const G = STAMP_GEOMETRY
 
-  const lines = [
-    { label: 'Разработал', name: stamp.authorName },
-    { label: 'Проверил', name: stamp.checkerName },
-    { label: 'Н. контроль', name: stamp.normControlName },
-    { label: 'Утвердил', name: stamp.approverName }
+  // ── Графа изменений (нижний-левый блок 75×25) ──
+  const ch = G.changes
+  const chX = x + ch.x
+  const chY = y + ch.y
+  const chCols: { left: number; col: typeof ch.cols[number] }[] = []
+  let cxAcc = 0
+  for (const col of ch.cols) {
+    chCols.push({ left: cxAcc, col })
+    cxAcc += col.width
+  }
+
+  // ── Графы 10-13 ──
+  const sg = G.signers
+  const sgX = x + sg.x
+  const sgY = y + sg.y
+  const sgCols = sg.cols
+  const colOffsets = sgCols.reduce<number[]>((acc, c) => {
+    const last = acc[acc.length - 1] ?? 0
+    acc.push(last + c.width)
+    return acc
+  }, [0])
+
+  const signerRows: { role: string; name: string; date: string }[] = [
+    { role: 'Разраб.', name: stamp.authorName, date: signerDate(stamp, 'author') },
+    { role: 'Проверил', name: stamp.checkerName, date: signerDate(stamp, 'checker') },
+    { role: 'ГИП', name: stamp.gipName, date: signerDate(stamp, 'gip') },
+    { role: 'Н. контр.', name: stamp.normControlName, date: signerDate(stamp, 'normControl') },
+    { role: 'Утв.', name: stamp.approverName, date: stamp.approverName ? signerDate(stamp, 'approver') : '' }
   ]
+
+  const ti = G.title
+  const tiX = x + ti.x
+  const tiY = y + ti.y
+
+  const st = G.stage
+  const stX = x + st.x
+  const stY = y + st.y
+  const stCols = [
+    { id: 'stage', label: 'Стадия', value: stamp.stageCode, w: 30 },
+    { id: 'sheet', label: 'Лист', value: String(sheetIndex + 1), w: 20 },
+    { id: 'sheets', label: 'Листов', value: String(sheetTotal), w: 20 }
+  ]
+
+  const co = G.company
+  const coX = x + co.x
+  const coY = y + co.y
+  const logoH = co.height * 0.55
+  const textY = coY + logoH
+
+  const designation = buildDesignationCode(stamp)
 
   return (
     <g>
       {/* Внешняя рамка штампа */}
       <rect x={x} y={y} width={W} height={H} fill="white" stroke="black" strokeWidth={FRAME_LINE_THICK_MM} />
+
+      {/* === Графа изменений === */}
       {/* Вертикальные разделители */}
-      <line x1={x + colA} y1={y} x2={x + colA} y2={y + H} stroke="black" strokeWidth={FRAME_LINE_THIN_MM} />
-      <line x1={x + colA + colB} y1={y} x2={x + colA + colB} y2={y + H} stroke="black" strokeWidth={FRAME_LINE_THIN_MM} />
-      {/* Горизонтальные разделители в левом блоке (4 строки подписей) */}
-      {lines.map((_, i) => (
-        <line key={i} x1={x} y1={y + lineH * (i + 1)} x2={x + colA} y2={y + lineH * (i + 1)} stroke="black" strokeWidth={FRAME_LINE_THIN_MM} />
+      {chCols.slice(1).map((c, i) => (
+        <line key={`chv-${i}`} x1={chX + c.left} y1={chY} x2={chX + c.left} y2={chY + ch.height}
+          stroke="black" strokeWidth={FRAME_LINE_THIN_MM} />
       ))}
-      {/* Подписи */}
-      {lines.map((l, i) => (
-        <g key={i}>
-          <text x={x + 1} y={y + lineH * i + 2.5} fontSize={2.5} fontFamily={FONT}>{l.label}</text>
-          <text x={x + 22} y={y + lineH * i + 2.5} fontSize={2.5} fontFamily={FONT}>{l.name}</text>
-          <text x={x + colA - 18} y={y + lineH * i + 2.5} fontSize={2.5} fontFamily={FONT} fill="#555">подп.</text>
-          <text x={x + colA - 8} y={y + lineH * i + 2.5} fontSize={2.5} fontFamily={FONT} fill="#555">{i === 0 ? formatStampDate(stamp.date) : ''}</text>
-        </g>
+      {/* Горизонтальные разделители */}
+      {[1, 2, 3, 4, 5].map(r => (
+        <line key={`chh-${r}`} x1={chX} y1={chY + r * 5} x2={chX + ch.width} y2={chY + r * 5}
+          stroke="black" strokeWidth={FRAME_LINE_THIN_MM} />
       ))}
-      {/* Средний блок: drawing title */}
-      <foreignObject x={x + colA + 1} y={y + 1} width={colB - 2} height={H - 2}>
+      {/* Заголовки */}
+      {chCols.map(({ left, col }) => (
+        <text
+          key={`chl-${col.id}`}
+          x={chX + left + col.width / 2}
+          y={chY + 3.5}
+          fontSize={2.5}
+          fontFamily={FONT}
+          textAnchor="middle"
+        >{col.label}</text>
+      ))}
+
+      {/* === Графы 10-13 (подписанты) === */}
+      {/* Вертикальные разделители */}
+      {colOffsets.slice(1, -1).map((off, i) => (
+        <line key={`sgv-${i}`} x1={sgX + off} y1={sgY} x2={sgX + off} y2={sgY + sg.height}
+          stroke="black" strokeWidth={FRAME_LINE_THIN_MM} />
+      ))}
+      {/* Горизонтальные разделители */}
+      {[1, 2, 3, 4, 5].map(r => (
+        <line key={`sgh-${r}`} x1={sgX} y1={sgY + r * sg.rowHeight} x2={sgX + sg.width} y2={sgY + r * sg.rowHeight}
+          stroke="black" strokeWidth={FRAME_LINE_THIN_MM} />
+      ))}
+      {/* Содержимое */}
+      {signerRows.map((row, ri) => {
+        const ry = sgY + ri * sg.rowHeight
+        return (
+          <g key={`sgrow-${ri}`}>
+            <text x={sgX + 0.6} y={ry + sg.rowHeight * 0.65} fontSize={3} fontFamily={FONT}>{row.role}</text>
+            <text x={sgX + colOffsets[1]! + 0.6} y={ry + sg.rowHeight * 0.65} fontSize={3} fontFamily={FONT}>{truncate(row.name, sg.cols[1]!.width * 1.5)}</text>
+            <text x={sgX + colOffsets[3]! + 0.6} y={ry + sg.rowHeight * 0.65} fontSize={3} fontFamily={FONT}>{row.date}</text>
+          </g>
+        )
+      })}
+
+      {/* === Графы 1-2 (Обозначение / Название) === */}
+      {/* Линия между обозначением и названием */}
+      <line x1={tiX} y1={tiY + ti.designationHeight} x2={tiX + ti.width} y2={tiY + ti.designationHeight}
+        stroke="black" strokeWidth={FRAME_LINE_THIN_MM} />
+      {/* Шифр (графа 2) */}
+      <text x={tiX + ti.width / 2} y={tiY + ti.designationHeight * 0.65}
+        fontSize={5.5} fontFamily={FONT} fontWeight={700} textAnchor="middle">{designation}</text>
+      {/* Название (графа 1) */}
+      <foreignObject x={tiX + 1} y={tiY + ti.designationHeight + 1}
+        width={ti.width - 2} height={ti.height - ti.designationHeight - 6}>
         <div style={{
-          font: `bold 4px ${FONT}`,
+          font: `bold 4.5px ${FONT}`,
           height: '100%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           textAlign: 'center'
         }}>
-          {stamp.drawingTitle || '—'}
+          {stamp.drawingTitle || ''}
         </div>
       </foreignObject>
-      {/* Правый блок: марка, стадия, лист */}
-      <text x={x + colA + colB + 1} y={y + 4} fontSize={3} fontFamily={FONT} fontWeight={700}>{stamp.drawingMark}</text>
-      <line x1={x + colA + colB} y1={y + 6} x2={x + W} y2={y + 6} stroke="black" strokeWidth={FRAME_LINE_THIN_MM} />
-      <text x={x + colA + colB + 1} y={y + 10} fontSize={2.5} fontFamily={FONT}>Стадия: {stamp.stageCode}</text>
-      <line x1={x + colA + colB} y1={y + 13} x2={x + W} y2={y + 13} stroke="black" strokeWidth={FRAME_LINE_THIN_MM} />
-      <text x={x + colA + colB + 1} y={y + 17} fontSize={2.5} fontFamily={FONT}>{formatSheetCounter(sheetIndex, sheetTotal)}</text>
-      <line x1={x + colA + colB} y1={y + 20} x2={x + W} y2={y + 20} stroke="black" strokeWidth={FRAME_LINE_THIN_MM} />
-      <foreignObject x={x + colA + colB + 1} y={y + 22} width={W - colA - colB - 2} height={20}>
-        <div style={{ font: `2.6px ${FONT}` }}>
-          <div><b>{stamp.companyName}</b></div>
-          <div style={{ color: '#555' }}>{stamp.companyDept}</div>
-          <div style={{ marginTop: '1mm', color: '#555' }}>{stamp.objectName}</div>
-        </div>
-      </foreignObject>
+
+      {/* === Графы 4/7/8 (Стадия / Лист / Листов) === */}
+      {/* Вертикальные разделители */}
+      {(() => {
+        let off = 0
+        return stCols.slice(0, -1).map((c, i) => {
+          off += c.w
+          return (
+            <line key={`stv-${i}`} x1={stX + off} y1={stY} x2={stX + off} y2={stY + st.height}
+              stroke="black" strokeWidth={FRAME_LINE_THIN_MM} />
+          )
+        })
+      })()}
+      {(() => {
+        let off = 0
+        return stCols.map((c, i) => {
+          const cellX = stX + off
+          off += c.w
+          return (
+            <g key={`stc-${i}`}>
+              <text x={cellX + c.w / 2} y={stY + st.height * 0.4}
+                fontSize={2} fontFamily={FONT} fill="#666" textAnchor="middle">{c.label}</text>
+              <text x={cellX + c.w / 2} y={stY + st.height * 0.9}
+                fontSize={3} fontFamily={FONT} fontWeight={700} textAnchor="middle">{c.value}</text>
+            </g>
+          )
+        })
+      })()}
+
+      {/* === Графа 9 (организация + лого) === */}
+      <line x1={coX} y1={textY} x2={coX + co.width} y2={textY}
+        stroke="black" strokeWidth={FRAME_LINE_THIN_MM} />
       {stamp.logoDataUrl && (
         <image
           href={stamp.logoDataUrl}
-          x={x + colA + colB + 1}
-          y={y + 43}
-          width={W - colA - colB - 2}
-          height={11}
-          preserveAspectRatio="xMinYMid meet"
+          x={coX + 1}
+          y={coY + 1}
+          width={co.width - 2}
+          height={logoH - 2}
+          preserveAspectRatio="xMidYMid meet"
         />
+      )}
+      <foreignObject x={coX} y={textY} width={co.width} height={co.height - logoH - (stamp.companyDept ? 3 : 0)}>
+        <div style={{
+          font: `bold 3px ${FONT}`,
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
+          padding: '0 0.5mm'
+        }}>
+          {stamp.companyName || ''}
+        </div>
+      </foreignObject>
+      {stamp.companyDept && (
+        <text x={coX + co.width / 2} y={coY + co.height - 0.8}
+          fontSize={2.2} fontFamily={FONT} fill="#666" textAnchor="middle">{stamp.companyDept}</text>
       )}
     </g>
   )
+}
+
+// ─── Side bar ──────────────────────────────────────────────────────────────
+
+interface SideBarProps {
+  readonly stamp: Stamp
+  readonly frame: { xMm: number; yMm: number; widthMm: number; heightMm: number }
+}
+
+function SideBar({ stamp, frame }: SideBarProps) {
+  const x = frame.xMm - SIDEBAR_WIDTH_MM
+  const y = frame.yMm
+  const w = SIDEBAR_WIDTH_MM
+  const h = frame.heightMm
+
+  const sections = [
+    { label: 'Согласовано', value: stamp.agreedBy ?? '', heightFrac: 0.30 },
+    { label: 'Инв. № подл.', value: stamp.inventoryNumber ?? '', heightFrac: 0.22 },
+    { label: 'Подп. и дата', value: '', heightFrac: 0.26 },
+    { label: 'Взам. инв. №', value: stamp.replacedInventoryNumber ?? '', heightFrac: 0.22 }
+  ]
+
+  let cy = y
+  return (
+    <g>
+      <rect x={x} y={y} width={w} height={h} fill="none" stroke="black" strokeWidth={FRAME_LINE_THIN_MM} />
+      {sections.map((sec, i) => {
+        const sh = h * sec.heightFrac
+        const top = cy
+        cy += sh
+        return (
+          <g key={i}>
+            {i > 0 && (
+              <line x1={x} y1={top} x2={x + w} y2={top} stroke="black" strokeWidth={FRAME_LINE_THIN_MM} />
+            )}
+            {/* Текст вертикально, повёрнут на 90° против ч.с. (rotate -90) */}
+            <text
+              transform={`rotate(-90, ${x + w / 2}, ${top + sh / 2})`}
+              x={x + w / 2}
+              y={top + sh / 2 + 1}
+              fontSize={2.4}
+              fontFamily={FONT}
+              textAnchor="middle"
+            >
+              {sec.label}{sec.value ? ` — ${sec.value}` : ''}
+            </text>
+          </g>
+        )
+      })}
+    </g>
+  )
+}
+
+// ─── Format mark ───────────────────────────────────────────────────────────
+
+interface FormatMarkProps {
+  readonly mark: string
+  readonly frame: { xMm: number; yMm: number; widthMm: number; heightMm: number }
+  readonly sheetHeightMm: number
+}
+
+function FormatMark({ mark, frame, sheetHeightMm }: FormatMarkProps) {
+  const markY = Math.min(sheetHeightMm - 0.5, frame.yMm + frame.heightMm + FORMAT_MARK_GAP_MM + 2)
+  return (
+    <text
+      x={frame.xMm + frame.widthMm}
+      y={markY}
+      fontSize={2.3}
+      fontFamily={FONT}
+      fill="#666"
+      textAnchor="end"
+    >{mark}</text>
+  )
+}
+
+// ─── Footer line ───────────────────────────────────────────────────────────
+
+interface FooterLineProps {
+  readonly text: string
+  readonly sheetIndex: number
+  readonly sheetTotal: number
+  readonly frame: { xMm: number; yMm: number; widthMm: number; heightMm: number }
+}
+
+function FooterLine({ text, sheetIndex, sheetTotal, frame }: FooterLineProps) {
+  const lineY = frame.yMm + frame.heightMm - FOOTER_MIN_HEIGHT_MM
+  return (
+    <g>
+      <line x1={frame.xMm} y1={lineY} x2={frame.xMm + frame.widthMm} y2={lineY}
+        stroke="black" strokeWidth={FRAME_LINE_THIN_MM} />
+      {text && (
+        <text x={frame.xMm + 2} y={lineY + 5} fontSize={3.5} fontFamily={FONT}>{text}</text>
+      )}
+      {sheetTotal > 1 && (
+        <text x={frame.xMm + frame.widthMm - 2} y={lineY + 5} fontSize={3.5} fontFamily={FONT} textAnchor="end">
+          Лист {sheetIndex + 1} из {sheetTotal}
+        </text>
+      )}
+    </g>
+  )
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────
+
+function truncate(text: string, maxChars: number): string {
+  if (!text) return ''
+  if (text.length <= maxChars) return text
+  return text.slice(0, Math.max(0, maxChars - 1)) + '…'
 }

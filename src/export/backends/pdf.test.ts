@@ -42,17 +42,23 @@ const baseModel: DocumentModel = {
   orientation: 'portrait',
   stamp: {
     objectName: 'Тестовый объект',
+    objectCode: '70-2025',
+    subsectionCode: 'ИЛО',
     drawingTitle: 'Теплопотери',
-    stageCode: 'Р',
+    stageCode: 'П',
     markCode: 'ОВ',
-    drawingMark: 'ОВ.001',
+    drawingMark: '',
     authorName: 'Иванов И.И.',
     checkerName: 'Петров П.П.',
-    approverName: 'Сидоров С.С.',
-    normControlName: '',
+    gipName: 'Гвоздёв Г.А.',
+    normControlName: 'Соколова С.Н.',
+    approverName: '',
     companyName: 'ООО «Теплопроект»',
     companyDept: 'Отдел ОВиК',
-    date: '2026-04-26'
+    date: '2026-04-26',
+    agreedBy: 'Заказчик',
+    inventoryNumber: '00123',
+    replacedInventoryNumber: '00099'
   },
   content: [
     { kind: 'heading', text: 'Тестовая страница', level: 1 },
@@ -65,6 +71,22 @@ describe('pdf backend', () => {
     const blob = await exportToPdf(baseModel, { fontFamily: 'roboto' })
     expect(blob).toBeInstanceOf(Blob)
     expect(blob.type).toBe('application/pdf')
+    expect(blob.size).toBeGreaterThan(500)
+  })
+
+  it('renders with stampMode=minimal-footer + footerLine', async () => {
+    const model: DocumentModel = {
+      ...baseModel,
+      stampMode: 'minimal-footer',
+      footerLine: 'Приложение Б'
+    }
+    const blob = await exportToPdf(model, { fontFamily: 'roboto' })
+    expect(blob.size).toBeGreaterThan(500)
+  })
+
+  it('renders with stampMode=none', async () => {
+    const model: DocumentModel = { ...baseModel, stampMode: 'none' }
+    const blob = await exportToPdf(model, { fontFamily: 'roboto' })
     expect(blob.size).toBeGreaterThan(500)
   })
 

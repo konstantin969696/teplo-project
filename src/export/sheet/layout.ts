@@ -39,15 +39,22 @@ function estimateBlockHeight(block: ContentBlock): number {
 }
 
 /**
- * Computes the usable content area on a sheet: frame minus stamp footer minus
- * a small gap above the stamp.
+ * Computes the usable content area on a sheet.
+ *  - stampMode='full'           — frame minus full stamp footer (~55mm) minus gap
+ *  - stampMode='minimal-footer' — frame minus mini-footer (~8mm) minus gap
+ *  - stampMode='none'           — full frame minus padding
  */
+const FOOTER_MIN_HEIGHT_MM = 8
+const STAMP_GAP = 2
+
 export function usableHeightMm(model: DocumentModel): number {
   const orient = effectiveOrientation(model.format, model.orientation)
   const dims = dimensions(model.format, orient)
   const frame = computeFrame(dims.widthMm, dims.heightMm)
-  const STAMP_GAP = 2
-  return Math.max(0, frame.heightMm - STAMP_HEIGHT_MM - STAMP_GAP)
+  const mode = model.stampMode ?? 'full'
+  if (mode === 'full') return Math.max(0, frame.heightMm - STAMP_HEIGHT_MM - STAMP_GAP)
+  if (mode === 'minimal-footer') return Math.max(0, frame.heightMm - FOOTER_MIN_HEIGHT_MM - STAMP_GAP)
+  return Math.max(0, frame.heightMm - STAMP_GAP)
 }
 
 /**

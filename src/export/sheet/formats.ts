@@ -46,3 +46,14 @@ export function effectiveOrientation(format: SheetFormat, requested: Orientation
   if (format.canRotate) return requested
   return format.widthMm > format.heightMm ? 'landscape' : 'portrait'
 }
+
+/**
+ * Маркер формата под рамкой по строительной практике:
+ *   К — книжный (portrait), А — альбомный (landscape).
+ *   Например: «Формат А4К», «Формат А3А», «Формат А4×5А» (склейки всегда А).
+ */
+export function formatStampMark(format: SheetFormat, requested: Orientation): string {
+  const orient = effectiveOrientation(format, requested)
+  const suffix = orient === 'portrait' ? 'К' : 'А'
+  return `Формат ${format.label}${suffix}`
+}

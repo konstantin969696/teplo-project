@@ -12,7 +12,7 @@ import { paginate } from '../sheet/layout'
 import { SheetCanvas } from './SheetCanvas'
 import { exportToPdf } from '../backends/pdf'
 import { FONT_SOURCES } from '../backends/fontLoader'
-import type { DocumentModel, Stamp, Orientation, ExportFontFamily } from '../types'
+import type { DocumentModel, Stamp, Orientation, ExportFontFamily, StampMode } from '../types'
 
 interface PreviewModalProps {
   readonly model: DocumentModel
@@ -29,6 +29,10 @@ export function PreviewModal({ model, onClose }: PreviewModalProps) {
   const setDefaultOrientation = useExportStore(s => s.setDefaultOrientation)
   const fontFamily = useExportStore(s => s.fontFamily)
   const setFontFamily = useExportStore(s => s.setFontFamily)
+  const defaultStampMode = useExportStore(s => s.defaultStampMode)
+  const setDefaultStampMode = useExportStore(s => s.setDefaultStampMode)
+  const defaultFooterLine = useExportStore(s => s.defaultFooterLine)
+  const setDefaultFooterLine = useExportStore(s => s.setDefaultFooterLine)
 
   const [sheetIdx, setSheetIdx] = useState(0)
   const [exportingFmt, setExportingFmt] = useState<'pdf' | 'excel' | 'word' | null>(null)
@@ -52,8 +56,10 @@ export function PreviewModal({ model, onClose }: PreviewModalProps) {
     ...model,
     format: findFormat(defaultFormatId) ?? model.format,
     orientation: defaultOrientation,
-    stamp
-  }), [model, defaultFormatId, defaultOrientation, stamp])
+    stamp,
+    stampMode: defaultStampMode,
+    footerLine: defaultFooterLine
+  }), [model, defaultFormatId, defaultOrientation, stamp, defaultStampMode, defaultFooterLine])
 
   const sheets = useMemo(() => paginate(effectiveModel), [effectiveModel])
   const currentSheet = sheets[Math.min(sheetIdx, Math.max(0, sheets.length - 1))]
@@ -150,19 +156,53 @@ export function PreviewModal({ model, onClose }: PreviewModalProps) {
             </select>
           </Section>
 
-          <Section title="Параметры штампа">
-            <StampForm
-              stamp={stamp}
-              onCommonChange={(k, v) => setStampField(k, v as Stamp[typeof k])}
-              onPerDocChange={(k, v) => setPerDocOverrides(p => ({ ...p, [k]: v }))}
-              onResetPerDoc={() => setPerDocOverrides({
-                drawingTitle: model.stamp.drawingTitle,
-                drawingMark: model.stamp.drawingMark
-              })}
-              onApplyAll={() => setStamp(stamp)}
-              onLogoChange={dataUrl => setStampField('logoDataUrl', dataUrl)}
-            />
+          <Section title="Режим оформления листа">
+            <div className="space-y-1">
+              {([
+                { id: 'full', label: 'Полный штамп ГОСТ' },
+                { id: 'minimal-footer', label: 'Только нижняя строка' },
+                { id: 'none', label: 'Без штампа (только рамка)' }
+              ] as { id: StampMode; label: string }[]).map(opt => (
+                <label key={opt.id} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="stampMode"
+                    value={opt.id}
+                    checked={defaultStampMode === opt.id}
+                    onChange={() => setDefaultStampMode(opt.id)}
+                  />
+                  <span>{opt.label}</span>
+                </label>
+              ))}
+            </div>
+            {defaultStampMode === 'minimal-footer' && (
+              <div className="mt-2">
+                <input
+                  type="text"
+                  value={defaultFooterLine}
+                  onChange={e => setDefaultFooterLine(e.target.value)}
+                  placeholder="Например: Приложение Б"
+                  className="w-full px-2 py-1 rounded border border-[var(--color-border)] bg-[var(--color-surface)]"
+                />
+              </div>
+            )}
           </Section>
+
+          {defaultStampMode === 'full' && (
+            <Section title="Параметры штампа">
+              <StampForm
+                stamp={stamp}
+                onCommonChange={(k, v) => setStampField(k, v as Stamp[typeof k])}
+                onPerDocChange={(k, v) => setPerDocOverrides(p => ({ ...p, [k]: v }))}
+                onResetPerDoc={() => setPerDocOverrides({
+                  drawingTitle: model.stamp.drawingTitle,
+                  drawingMark: model.stamp.drawingMark
+                })}
+                onApplyAll={() => setStamp(stamp)}
+                onLogoChange={dataUrl => setStampField('logoDataUrl', dataUrl)}
+              />
+            </Section>
+          )}
         </div>
 
         {/* Низ панели: кнопки экспорта */}
@@ -317,6 +357,24 @@ function StampForm({ stamp, onCommonChange, onPerDocChange, onResetPerDoc, onApp
           className="w-full px-2 py-1 rounded border border-[var(--color-border)] bg-[var(--color-surface)]" />
       </Field>
 
+      <div className="grid grid-cols-3 gap-2">
+        <Field label="Шифр объекта">
+          <input value={stamp.objectCode} onChange={e => onCommonChange('objectCode', e.target.value)}
+            placeholder="70-2025"
+            className="w-full px-2 py-1 rounded border border-[var(--color-border)] bg-[var(--color-surface)]" />
+        </Field>
+        <Field label="Подраздел">
+          <input value={stamp.subsectionCode} onChange={e => onCommonChange('subsectionCode', e.target.value)}
+            placeholder="ИЛО"
+            className="w-full px-2 py-1 rounded border border-[var(--color-border)] bg-[var(--color-surface)]" />
+        </Field>
+        <Field label="Марка">
+          <input value={stamp.markCode} onChange={e => onCommonChange('markCode', e.target.value)}
+            placeholder="ОВ"
+            className="w-full px-2 py-1 rounded border border-[var(--color-border)] bg-[var(--color-surface)]" />
+        </Field>
+      </div>
+
       <div className="grid grid-cols-2 gap-2">
         <Field label="Стадия">
           <select value={stamp.stageCode} onChange={e => onCommonChange('stageCode', e.target.value)}
@@ -335,11 +393,32 @@ function StampForm({ stamp, onCommonChange, onPerDocChange, onResetPerDoc, onApp
 
       <Field label="Разработал"><input value={stamp.authorName} onChange={e => onCommonChange('authorName', e.target.value)} className="w-full px-2 py-1 rounded border border-[var(--color-border)] bg-[var(--color-surface)]" /></Field>
       <Field label="Проверил"><input value={stamp.checkerName} onChange={e => onCommonChange('checkerName', e.target.value)} className="w-full px-2 py-1 rounded border border-[var(--color-border)] bg-[var(--color-surface)]" /></Field>
+      <Field label="ГИП"><input value={stamp.gipName} onChange={e => onCommonChange('gipName', e.target.value)} className="w-full px-2 py-1 rounded border border-[var(--color-border)] bg-[var(--color-surface)]" /></Field>
       <Field label="Н. контроль"><input value={stamp.normControlName} onChange={e => onCommonChange('normControlName', e.target.value)} className="w-full px-2 py-1 rounded border border-[var(--color-border)] bg-[var(--color-surface)]" /></Field>
-      <Field label="Утвердил"><input value={stamp.approverName} onChange={e => onCommonChange('approverName', e.target.value)} className="w-full px-2 py-1 rounded border border-[var(--color-border)] bg-[var(--color-surface)]" /></Field>
+      <Field label="Утвердил" hint="опц.">
+        <input value={stamp.approverName} onChange={e => onCommonChange('approverName', e.target.value)} className="w-full px-2 py-1 rounded border border-[var(--color-border)] bg-[var(--color-surface)]" />
+      </Field>
 
       <Field label="Организация"><input value={stamp.companyName} onChange={e => onCommonChange('companyName', e.target.value)} className="w-full px-2 py-1 rounded border border-[var(--color-border)] bg-[var(--color-surface)]" /></Field>
       <Field label="Подразделение"><input value={stamp.companyDept} onChange={e => onCommonChange('companyDept', e.target.value)} className="w-full px-2 py-1 rounded border border-[var(--color-border)] bg-[var(--color-surface)]" /></Field>
+
+      <hr className="my-2 border-[var(--color-border)]" />
+      <div className="text-[11px] text-[var(--color-text-secondary)]">Боковая полоса (ГОСТ Р 21.101)</div>
+
+      <Field label="Согласовано" hint="имя/должность">
+        <input value={stamp.agreedBy ?? ''} onChange={e => onCommonChange('agreedBy', e.target.value)}
+          className="w-full px-2 py-1 rounded border border-[var(--color-border)] bg-[var(--color-surface)]" />
+      </Field>
+      <div className="grid grid-cols-2 gap-2">
+        <Field label="Инв. № подп.">
+          <input value={stamp.inventoryNumber ?? ''} onChange={e => onCommonChange('inventoryNumber', e.target.value)}
+            className="w-full px-2 py-1 rounded border border-[var(--color-border)] bg-[var(--color-surface)]" />
+        </Field>
+        <Field label="Взам. инв. №">
+          <input value={stamp.replacedInventoryNumber ?? ''} onChange={e => onCommonChange('replacedInventoryNumber', e.target.value)}
+            className="w-full px-2 py-1 rounded border border-[var(--color-border)] bg-[var(--color-surface)]" />
+        </Field>
+      </div>
 
       <Field label="Лого" hint="PNG/JPEG, до 200 KB">
         <div className="space-y-1.5">

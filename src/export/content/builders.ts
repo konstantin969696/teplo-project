@@ -13,7 +13,7 @@ import { useUfhLoopStore } from '../../store/ufhLoopStore'
 import { useExportStore } from '../store/exportStore'
 import { findFormat } from '../sheet/formats'
 import { calculateRoomTotals } from '../../engine/heatLoss'
-import type { DocumentModel, ContentBlock, Stamp } from '../types'
+import type { DocumentModel, ContentBlock, Stamp, StampMode } from '../types'
 import type { Room } from '../../types/project'
 
 const SCHEMA_LABEL: Record<string, string> = {
@@ -28,6 +28,8 @@ interface BuilderContext {
   readonly stamp: Stamp
   readonly formatId: string
   readonly orientation: 'portrait' | 'landscape'
+  readonly stampMode: StampMode
+  readonly footerLine: string
 }
 
 function readBuilderContext(overrideTitle: string, overrideMark: string): BuilderContext {
@@ -35,7 +37,9 @@ function readBuilderContext(overrideTitle: string, overrideMark: string): Builde
   return {
     stamp: { ...exp.stamp, drawingTitle: overrideTitle, drawingMark: overrideMark },
     formatId: exp.defaultFormatId,
-    orientation: exp.defaultOrientation
+    orientation: exp.defaultOrientation,
+    stampMode: exp.defaultStampMode,
+    footerLine: exp.defaultFooterLine
   }
 }
 
@@ -52,6 +56,8 @@ function makeModel(
     format: fmt,
     orientation: ctx.orientation,
     stamp: ctx.stamp,
+    stampMode: ctx.stampMode,
+    footerLine: ctx.footerLine,
     content
   }
 }

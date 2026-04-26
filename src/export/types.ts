@@ -14,25 +14,61 @@ export interface SheetFormat {
 }
 
 /**
- * ГОСТ 2.104-2006 form 1 «Основная надпись».
+ * ГОСТ 2.104-2006 form 1 «Основная надпись» + дополнительные графы по ГОСТ Р 21.101-2020.
  * Заполняется в UI перед экспортом, persist в exportStore.
  * Поля «Лист N из M» проставляются автоматически после layout-пагинации.
+ *
+ * Шифр документа собирается из частей:
+ *   `${objectCode}-${stageCode}-${subsectionCode} - ${markCode}`
+ * например: `70-2025-П-ИЛО - ОВ` (объект=70-2025, стадия=П, подраздел=ИЛО, марка=ОВ).
  */
 export interface Stamp {
+  // Объект и шифр
   readonly objectName: string          // «Жилой дом по адресу...»
-  readonly drawingTitle: string        // «Теплопотери», «Спецификация приборов» (per-document)
+  readonly objectCode: string          // шифр объекта: «70-2025»
+  readonly subsectionCode: string      // подраздел: «ИЛО», «ПЗ», «С»
   readonly stageCode: string           // 'П' | 'Р' | 'РД' | 'Э'
   readonly markCode: string            // марка комплекта: 'ОВ', 'ВК', ...
-  readonly drawingMark: string         // марка чертежа: 'ОВ.001'
+
+  // Per-document
+  readonly drawingTitle: string        // «Теплопотери», «Спецификация приборов»
+  readonly drawingMark: string         // марка чертежа: 'ОВ.001' (для шифра графы 2 если задано)
+
+  // Подписанты (графа 11/12/13)
   readonly authorName: string
   readonly checkerName: string
-  readonly approverName: string
+  readonly gipName: string             // ГИП — главный инженер проекта
   readonly normControlName: string
+  readonly approverName: string        // утвердил (опц., в форме 1 не используется, но оставляем для совместимости)
+
+  // Организация (графа 9)
   readonly companyName: string
   readonly companyDept: string
+  readonly logoDataUrl?: string        // base64 data URL, рендерится в правом блоке штампа
+
+  // Дата (общая) и опц. отдельные даты подписантов
   readonly date: string                // ISO YYYY-MM-DD; в штампе — DD.MM.YYYY
-  readonly logoDataUrl?: string        // base64 data URL, опционально, рендерится в правом блоке штампа
+  readonly signDates?: {
+    readonly author?: string
+    readonly checker?: string
+    readonly gip?: string
+    readonly normControl?: string
+    readonly approver?: string
+  }
+
+  // Дополнительные графы по ГОСТ Р 21.101-2020 (боковая полоса слева)
+  readonly agreedBy?: string                  // «Согласовано» (имя/должность)
+  readonly inventoryNumber?: string           // «Инв. № подп.»
+  readonly replacedInventoryNumber?: string   // «Взам. инв. №»
 }
+
+/**
+ * Режим оформления листа.
+ *  - 'full'           — полный штамп ГОСТ форма 1 + боковая полоса + маркировка формата
+ *  - 'minimal-footer' — без штампа; внизу справа за рамкой строка `footerLine` («Приложение Б»)
+ *  - 'none'           — только рамка + контент
+ */
+export type StampMode = 'full' | 'minimal-footer' | 'none'
 
 /**
  * Шрифт для PDF-экспорта.
@@ -89,6 +125,8 @@ export interface DocumentModel {
   readonly format: SheetFormat
   readonly orientation: Orientation
   readonly stamp: Stamp
+  readonly stampMode?: StampMode       // default 'full'
+  readonly footerLine?: string         // используется при stampMode='minimal-footer' («Приложение Б»)
   readonly content: readonly ContentBlock[]
 }
 
