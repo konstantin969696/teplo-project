@@ -1,0 +1,13 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+@theme {
+  --font-sans: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+}

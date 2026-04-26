@@ -1,0 +1,133 @@
+{
+  "schemaVersion": "1.0",
+  "city": {
+    "name": "Москва",
+    "tOutside": -28,
+    "gsop": 4551,
+    "humidityZone": "Б"
+  },
+  "tInside": 20,
+  "schemaType": "two-pipe-dead-end",
+  "pipeMaterialId": "steel-vgp-dn20",
+  "coolantId": "water",
+  "tSupply": 80,
+  "tReturn": 60,
+  "tSupplyUfh": 45,
+  "tReturnUfh": 35,
+  "rooms": {
+    "room-1": {
+      "id": "room-1",
+      "number": 1,
+      "name": "Гостиная",
+      "floor": 1,
+      "area": 20,
+      "height": 2.8,
+      "isCorner": false,
+      "infiltrationMethod": "rate",
+      "nInfiltration": 0.5,
+      "gapArea": null,
+      "windSpeed": null,
+      "lVentilation": 0,
+      "tInside": 20
+    }
+  },
+  "roomOrder": ["room-1"],
+  "enclosures": {
+    "enc-1": {
+      "id": "enc-1",
+      "roomId": "room-1",
+      "type": "wall-ext",
+      "orientation": "С",
+      "area": 12.5,
+      "kValue": 0.45,
+      "nCoeff": 1.0,
+      "nOverridden": false,
+      "adjacentRoomName": null,
+      "tAdjacent": null,
+      "perimeterOverride": null,
+      "zoneR": [0, 0, 0, 0],
+      "parentEnclosureId": null,
+      "constructionId": null
+    },
+    "enc-2": {
+      "id": "enc-2",
+      "roomId": "room-1",
+      "type": "window",
+      "orientation": "С",
+      "area": 1.5,
+      "kValue": 1.4,
+      "nCoeff": 1.0,
+      "nOverridden": false,
+      "adjacentRoomName": null,
+      "tAdjacent": null,
+      "perimeterOverride": null,
+      "zoneR": [0, 0, 0, 0],
+      "parentEnclosureId": "enc-1",
+      "constructionId": null
+    }
+  },
+  "enclosureOrder": ["enc-1", "enc-2"],
+  "equipment": {
+    "eq-1": {
+      "id": "eq-1",
+      "roomId": "room-1",
+      "kind": "bimetal",
+      "catalogModelId": "rifar-base-500",
+      "connection": "side",
+      "installation": "open",
+      "panelType": null,
+      "panelHeightMm": null,
+      "panelLengthMm": null,
+      "sectionsOverride": null,
+      "convectorLengthMm": null,
+      "manualQNominal": null,
+      "manualNExponent": null
+    }
+  },
+  "equipmentOrder": ["eq-1"],
+  "segments": {
+    "seg-1": {
+      "id": "seg-1",
+      "parentSegmentId": null,
+      "name": "Магистраль",
+      "equipmentId": null,
+      "qOverride": null,
+      "lengthM": 10,
+      "pipeId": "steel-vgp-dn20",
+      "dnMm": 20,
+      "kmsCounts": {},
+      "velocityTargetMS": 0.6
+    },
+    "seg-2": {
+      "id": "seg-2",
+      "parentSegmentId": "seg-1",
+      "name": "Подводка к прибору",
+      "equipmentId": "eq-1",
+      "qOverride": null,
+      "lengthM": 3,
+      "pipeId": "steel-vgp-dn20",
+      "dnMm": 15,
+      "kmsCounts": { "kms-elbow-90": 2 },
+      "velocityTargetMS": 0.3
+    }
+  },
+  "segmentOrder": ["seg-1", "seg-2"],
+  "ufhLoops": {
+    "loop-1": {
+      "id": "loop-1",
+      "roomId": "room-1",
+      "enabled": true,
+      "activeAreaM2": 16,
+      "covering": "tile",
+      "pipeId": "pe-x-dn16",
+      "stepCm": 15,
+      "leadInM": 3
+    }
+  },
+  "ufhLoopOrder": ["loop-1"],
+  "customCities": [],
+  "customCoolants": [],
+  "customPipes": [],
+  "customKms": [],
+  "activeTab": 0
+}

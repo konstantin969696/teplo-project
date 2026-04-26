@@ -1,0 +1,592 @@
+{
+  "_meta": {
+    "version": 2,
+    "normalizedTo": "ΔT=70°C (EN 442 converted if needed)",
+    "generated": "2026-04-16",
+    "note": "Все qAt70 / qPerSectionAt70 приведены к ΔT=70°C. Европейские каталоги (Kermi, Purmo, Buderus, Korado) пересчитаны из ΔT=50 по формуле Q70 = Q50 × (70/50)^n. Конкретные значения для европейских моделей — прикидочные, требуют сверки с актуальным каталогом производителя. Российские биметаллические/алюминиевые — VERIFIED по официальным сайтам.",
+    "sources": {
+      "rifar": "rifar.ru — Base 500 197 Вт, Base 350 136 Вт, Monolit 500 196 Вт, Alum 500 183 Вт при ΔT=70 [VERIFIED]",
+      "royal-thermo": "royalthermo.ru — BiLiner 500 ~171 Вт, Revolution 500 ~181 Вт, PianoForte 500 ~185 Вт, Indigo Super 500 ~190 Вт при ΔT=70 [APPROXIMATE]",
+      "global": "globalradiatori.com — Style Plus 500 ~182 Вт, Iseo 500 ~181 Вт при ΔT=70 [APPROXIMATE]",
+      "sira": "sira.it — Ali Metal 500 ~188 Вт, RS 500 ~173 Вт при ΔT=70 [APPROXIMATE]",
+      "tenrad": "tenrad.com — BM 500 ~161 Вт при ΔT=70 [APPROXIMATE]",
+      "ms-140": "Историческое (Минский/Брянский заводы) — 160 Вт/секция при ΔT=70",
+      "ms-110": "МС-110 (чугун) — ~140 Вт/секция при ΔT=70",
+      "konner": "konnerheat.com — Modern 500 ~100 Вт при ΔT=70 [APPROXIMATE]",
+      "sti-nova": "sti-rostov.ru — Нова 500 ~140 Вт при ΔT=70 [APPROXIMATE]",
+      "viadrus": "viadrus.cz — STYL 500 ~120 Вт при ΔT=70 [APPROXIMATE]",
+      "retro": "Ретро-чугунные (Guratec, Demir Dokum) — ~130 Вт при ΔT=70 [APPROXIMATE]",
+      "kermi": "kermi.com — FKO / FTV (pre-ΔT=70 recalc from ΔT=50) [APPROXIMATE]",
+      "purmo": "purmo.com — Compact / Ventil Compact (pre-ΔT=70 recalc from ΔT=50) [APPROXIMATE]",
+      "buderus": "buderus.ru — Logatrend K-Profil (pre-ΔT=70 recalc) [APPROXIMATE]",
+      "korado": "korado.com — Radik Klasik (pre-ΔT=70 recalc) [APPROXIMATE]",
+      "prado": "prado.ru — Classic Type 22 h=500 [APPROXIMATE]",
+      "varmann": "varmann.ru — Ntherm, PlanoKon [APPROXIMATE]",
+      "kzto": "kzto.ru — Бриз, Соло [APPROXIMATE]",
+      "mohlenhoff": "moehlenhoff.com — GKH глубина 90 мм [APPROXIMATE]",
+      "licon": "licon.cz — LICON PK h=130 [APPROXIMATE]"
+    }
+  },
+  "models": [
+    {
+      "id": "rifar-base-500",
+      "manufacturer": "Rifar",
+      "series": "Base 500",
+      "kind": "bimetal",
+      "nExponent": 1.3,
+      "isCustom": false,
+      "qPerSectionAt70": 197,
+      "heightMm": 500,
+      "sectionWidthMm": 80,
+      "maxSections": 14
+    },
+    {
+      "id": "rifar-base-350",
+      "manufacturer": "Rifar",
+      "series": "Base 350",
+      "kind": "bimetal",
+      "nExponent": 1.3,
+      "isCustom": false,
+      "qPerSectionAt70": 136,
+      "heightMm": 350,
+      "sectionWidthMm": 80,
+      "maxSections": 14
+    },
+    {
+      "id": "rifar-base-200",
+      "manufacturer": "Rifar",
+      "series": "Base 200",
+      "kind": "bimetal",
+      "nExponent": 1.3,
+      "isCustom": false,
+      "qPerSectionAt70": 104,
+      "heightMm": 200,
+      "sectionWidthMm": 80,
+      "maxSections": 14
+    },
+    {
+      "id": "rifar-monolit-500",
+      "manufacturer": "Rifar",
+      "series": "Monolit 500",
+      "kind": "bimetal",
+      "nExponent": 1.3,
+      "isCustom": false,
+      "qPerSectionAt70": 196,
+      "heightMm": 500,
+      "sectionWidthMm": 100,
+      "maxSections": 14
+    },
+    {
+      "id": "rifar-monolit-350",
+      "manufacturer": "Rifar",
+      "series": "Monolit 350",
+      "kind": "bimetal",
+      "nExponent": 1.3,
+      "isCustom": false,
+      "qPerSectionAt70": 134,
+      "heightMm": 350,
+      "sectionWidthMm": 100,
+      "maxSections": 14
+    },
+    {
+      "id": "rifar-alum-500",
+      "manufacturer": "Rifar",
+      "series": "Alum 500",
+      "kind": "aluminum",
+      "nExponent": 1.32,
+      "isCustom": false,
+      "qPerSectionAt70": 183,
+      "heightMm": 500,
+      "sectionWidthMm": 80,
+      "maxSections": 14
+    },
+    {
+      "id": "rifar-alum-350",
+      "manufacturer": "Rifar",
+      "series": "Alum 350",
+      "kind": "aluminum",
+      "nExponent": 1.32,
+      "isCustom": false,
+      "qPerSectionAt70": 139,
+      "heightMm": 350,
+      "sectionWidthMm": 80,
+      "maxSections": 14
+    },
+    {
+      "id": "royal-thermo-biliner-500",
+      "manufacturer": "Royal Thermo",
+      "series": "BiLiner 500",
+      "kind": "bimetal",
+      "nExponent": 1.3,
+      "isCustom": false,
+      "qPerSectionAt70": 171,
+      "heightMm": 500,
+      "sectionWidthMm": 80,
+      "maxSections": 14
+    },
+    {
+      "id": "royal-thermo-revolution-500",
+      "manufacturer": "Royal Thermo",
+      "series": "Revolution 500",
+      "kind": "bimetal",
+      "nExponent": 1.3,
+      "isCustom": false,
+      "qPerSectionAt70": 181,
+      "heightMm": 500,
+      "sectionWidthMm": 80,
+      "maxSections": 14
+    },
+    {
+      "id": "royal-thermo-pianoforte-500",
+      "manufacturer": "Royal Thermo",
+      "series": "PianoForte 500",
+      "kind": "bimetal",
+      "nExponent": 1.3,
+      "isCustom": false,
+      "qPerSectionAt70": 185,
+      "heightMm": 500,
+      "sectionWidthMm": 80,
+      "maxSections": 14
+    },
+    {
+      "id": "royal-thermo-indigo-super-500",
+      "manufacturer": "Royal Thermo",
+      "series": "Indigo Super 500",
+      "kind": "bimetal",
+      "nExponent": 1.3,
+      "isCustom": false,
+      "qPerSectionAt70": 190,
+      "heightMm": 500,
+      "sectionWidthMm": 80,
+      "maxSections": 14
+    },
+    {
+      "id": "global-style-plus-500",
+      "manufacturer": "Global",
+      "series": "Style Plus 500",
+      "kind": "bimetal",
+      "nExponent": 1.3,
+      "isCustom": false,
+      "qPerSectionAt70": 182,
+      "heightMm": 500,
+      "sectionWidthMm": 80,
+      "maxSections": 14
+    },
+    {
+      "id": "global-iseo-500",
+      "manufacturer": "Global",
+      "series": "Iseo 500 (алюминий)",
+      "kind": "aluminum",
+      "nExponent": 1.32,
+      "isCustom": false,
+      "qPerSectionAt70": 181,
+      "heightMm": 500,
+      "sectionWidthMm": 80,
+      "maxSections": 14
+    },
+    {
+      "id": "sira-ali-metal-500",
+      "manufacturer": "Sira",
+      "series": "Ali Metal 500",
+      "kind": "aluminum",
+      "nExponent": 1.32,
+      "isCustom": false,
+      "qPerSectionAt70": 188,
+      "heightMm": 500,
+      "sectionWidthMm": 80,
+      "maxSections": 14
+    },
+    {
+      "id": "sira-rs-500",
+      "manufacturer": "Sira",
+      "series": "RS 500 (биметалл)",
+      "kind": "bimetal",
+      "nExponent": 1.3,
+      "isCustom": false,
+      "qPerSectionAt70": 173,
+      "heightMm": 500,
+      "sectionWidthMm": 80,
+      "maxSections": 14
+    },
+    {
+      "id": "tenrad-bm-500",
+      "manufacturer": "Tenrad",
+      "series": "BM 500 (биметалл)",
+      "kind": "bimetal",
+      "nExponent": 1.3,
+      "isCustom": false,
+      "qPerSectionAt70": 161,
+      "heightMm": 500,
+      "sectionWidthMm": 80,
+      "maxSections": 14
+    },
+    {
+      "id": "ms-140-500",
+      "manufacturer": "Минский завод",
+      "series": "МС-140 (чугун)",
+      "kind": "cast-iron",
+      "nExponent": 1.34,
+      "isCustom": false,
+      "qPerSectionAt70": 160,
+      "heightMm": 500,
+      "sectionWidthMm": 93,
+      "maxSections": 16
+    },
+    {
+      "id": "ms-110-500",
+      "manufacturer": "Минский завод",
+      "series": "МС-110 (чугун)",
+      "kind": "cast-iron",
+      "nExponent": 1.34,
+      "isCustom": false,
+      "qPerSectionAt70": 140,
+      "heightMm": 500,
+      "sectionWidthMm": 85,
+      "maxSections": 16
+    },
+    {
+      "id": "sti-nova-500",
+      "manufacturer": "STI",
+      "series": "Нова 500 (чугун)",
+      "kind": "cast-iron",
+      "nExponent": 1.34,
+      "isCustom": false,
+      "qPerSectionAt70": 140,
+      "heightMm": 500,
+      "sectionWidthMm": 85,
+      "maxSections": 12
+    },
+    {
+      "id": "konner-modern-500",
+      "manufacturer": "Konner",
+      "series": "Modern 500 (чугун)",
+      "kind": "cast-iron",
+      "nExponent": 1.34,
+      "isCustom": false,
+      "qPerSectionAt70": 100,
+      "heightMm": 500,
+      "sectionWidthMm": 80,
+      "maxSections": 10
+    },
+    {
+      "id": "viadrus-styl-500",
+      "manufacturer": "Viadrus",
+      "series": "STYL 500 (чугун)",
+      "kind": "cast-iron",
+      "nExponent": 1.34,
+      "isCustom": false,
+      "qPerSectionAt70": 120,
+      "heightMm": 500,
+      "sectionWidthMm": 80,
+      "maxSections": 14
+    },
+    {
+      "id": "retro-guratec-apollo",
+      "manufacturer": "Guratec",
+      "series": "Apollo (ретро чугун)",
+      "kind": "cast-iron",
+      "nExponent": 1.34,
+      "isCustom": false,
+      "qPerSectionAt70": 130,
+      "heightMm": 560,
+      "sectionWidthMm": 100,
+      "maxSections": 20
+    },
+    {
+      "id": "kermi-fko-22-500",
+      "manufacturer": "Kermi",
+      "series": "FKO Type 22 h=500",
+      "kind": "panel",
+      "panelType": "22",
+      "nExponent": 1.3,
+      "isCustom": false,
+      "variants": [
+        { "heightMm": 500, "lengthMm": 400, "qAt70": 652 },
+        { "heightMm": 500, "lengthMm": 600, "qAt70": 978 },
+        { "heightMm": 500, "lengthMm": 800, "qAt70": 1304 },
+        { "heightMm": 500, "lengthMm": 1000, "qAt70": 1630 },
+        { "heightMm": 500, "lengthMm": 1200, "qAt70": 1956 },
+        { "heightMm": 500, "lengthMm": 1400, "qAt70": 2282 },
+        { "heightMm": 500, "lengthMm": 1600, "qAt70": 2608 },
+        { "heightMm": 500, "lengthMm": 2000, "qAt70": 3260 }
+      ]
+    },
+    {
+      "id": "kermi-fko-22-600",
+      "manufacturer": "Kermi",
+      "series": "FKO Type 22 h=600",
+      "kind": "panel",
+      "panelType": "22",
+      "nExponent": 1.3,
+      "isCustom": false,
+      "variants": [
+        { "heightMm": 600, "lengthMm": 400, "qAt70": 778 },
+        { "heightMm": 600, "lengthMm": 600, "qAt70": 1168 },
+        { "heightMm": 600, "lengthMm": 800, "qAt70": 1557 },
+        { "heightMm": 600, "lengthMm": 1000, "qAt70": 1946 },
+        { "heightMm": 600, "lengthMm": 1200, "qAt70": 2335 },
+        { "heightMm": 600, "lengthMm": 1400, "qAt70": 2724 },
+        { "heightMm": 600, "lengthMm": 1600, "qAt70": 3113 },
+        { "heightMm": 600, "lengthMm": 2000, "qAt70": 3892 }
+      ]
+    },
+    {
+      "id": "kermi-fko-11-500",
+      "manufacturer": "Kermi",
+      "series": "FKO Type 11 h=500",
+      "kind": "panel",
+      "panelType": "11",
+      "nExponent": 1.3,
+      "isCustom": false,
+      "variants": [
+        { "heightMm": 500, "lengthMm": 400, "qAt70": 358 },
+        { "heightMm": 500, "lengthMm": 600, "qAt70": 537 },
+        { "heightMm": 500, "lengthMm": 800, "qAt70": 716 },
+        { "heightMm": 500, "lengthMm": 1000, "qAt70": 895 },
+        { "heightMm": 500, "lengthMm": 1200, "qAt70": 1074 },
+        { "heightMm": 500, "lengthMm": 1600, "qAt70": 1432 },
+        { "heightMm": 500, "lengthMm": 2000, "qAt70": 1790 }
+      ]
+    },
+    {
+      "id": "kermi-fko-21-500",
+      "manufacturer": "Kermi",
+      "series": "FKO Type 21 h=500",
+      "kind": "panel",
+      "panelType": "21",
+      "nExponent": 1.3,
+      "isCustom": false,
+      "variants": [
+        { "heightMm": 500, "lengthMm": 400, "qAt70": 504 },
+        { "heightMm": 500, "lengthMm": 600, "qAt70": 756 },
+        { "heightMm": 500, "lengthMm": 800, "qAt70": 1008 },
+        { "heightMm": 500, "lengthMm": 1000, "qAt70": 1260 },
+        { "heightMm": 500, "lengthMm": 1200, "qAt70": 1512 },
+        { "heightMm": 500, "lengthMm": 1600, "qAt70": 2016 },
+        { "heightMm": 500, "lengthMm": 2000, "qAt70": 2520 }
+      ]
+    },
+    {
+      "id": "kermi-fko-33-500",
+      "manufacturer": "Kermi",
+      "series": "FKO Type 33 h=500",
+      "kind": "panel",
+      "panelType": "33",
+      "nExponent": 1.3,
+      "isCustom": false,
+      "variants": [
+        { "heightMm": 500, "lengthMm": 400, "qAt70": 964 },
+        { "heightMm": 500, "lengthMm": 600, "qAt70": 1446 },
+        { "heightMm": 500, "lengthMm": 800, "qAt70": 1928 },
+        { "heightMm": 500, "lengthMm": 1000, "qAt70": 2410 },
+        { "heightMm": 500, "lengthMm": 1200, "qAt70": 2892 },
+        { "heightMm": 500, "lengthMm": 1600, "qAt70": 3856 }
+      ]
+    },
+    {
+      "id": "purmo-compact-22-500",
+      "manufacturer": "Purmo",
+      "series": "Compact Type 22 h=500",
+      "kind": "panel",
+      "panelType": "22",
+      "nExponent": 1.3,
+      "isCustom": false,
+      "variants": [
+        { "heightMm": 500, "lengthMm": 400, "qAt70": 636 },
+        { "heightMm": 500, "lengthMm": 600, "qAt70": 954 },
+        { "heightMm": 500, "lengthMm": 800, "qAt70": 1272 },
+        { "heightMm": 500, "lengthMm": 1000, "qAt70": 1590 },
+        { "heightMm": 500, "lengthMm": 1200, "qAt70": 1908 },
+        { "heightMm": 500, "lengthMm": 1400, "qAt70": 2226 },
+        { "heightMm": 500, "lengthMm": 1600, "qAt70": 2544 },
+        { "heightMm": 500, "lengthMm": 2000, "qAt70": 3180 }
+      ]
+    },
+    {
+      "id": "purmo-ventil-compact-22-500",
+      "manufacturer": "Purmo",
+      "series": "Ventil Compact Type 22 h=500",
+      "kind": "panel",
+      "panelType": "22",
+      "nExponent": 1.3,
+      "isCustom": false,
+      "variants": [
+        { "heightMm": 500, "lengthMm": 400, "qAt70": 636 },
+        { "heightMm": 500, "lengthMm": 600, "qAt70": 954 },
+        { "heightMm": 500, "lengthMm": 900, "qAt70": 1431 },
+        { "heightMm": 500, "lengthMm": 1100, "qAt70": 1749 },
+        { "heightMm": 500, "lengthMm": 1400, "qAt70": 2226 },
+        { "heightMm": 500, "lengthMm": 1800, "qAt70": 2862 }
+      ]
+    },
+    {
+      "id": "buderus-logatrend-k22-500",
+      "manufacturer": "Buderus",
+      "series": "Logatrend K-Profil Type 22 h=500",
+      "kind": "panel",
+      "panelType": "22",
+      "nExponent": 1.3,
+      "isCustom": false,
+      "variants": [
+        { "heightMm": 500, "lengthMm": 400, "qAt70": 640 },
+        { "heightMm": 500, "lengthMm": 600, "qAt70": 960 },
+        { "heightMm": 500, "lengthMm": 800, "qAt70": 1280 },
+        { "heightMm": 500, "lengthMm": 1000, "qAt70": 1600 },
+        { "heightMm": 500, "lengthMm": 1200, "qAt70": 1920 },
+        { "heightMm": 500, "lengthMm": 1600, "qAt70": 2560 },
+        { "heightMm": 500, "lengthMm": 2000, "qAt70": 3200 }
+      ]
+    },
+    {
+      "id": "korado-radik-22-500",
+      "manufacturer": "Korado",
+      "series": "Radik Klasik Type 22 h=500",
+      "kind": "panel",
+      "panelType": "22",
+      "nExponent": 1.3,
+      "isCustom": false,
+      "variants": [
+        { "heightMm": 500, "lengthMm": 400, "qAt70": 620 },
+        { "heightMm": 500, "lengthMm": 600, "qAt70": 930 },
+        { "heightMm": 500, "lengthMm": 800, "qAt70": 1240 },
+        { "heightMm": 500, "lengthMm": 1000, "qAt70": 1550 },
+        { "heightMm": 500, "lengthMm": 1200, "qAt70": 1860 },
+        { "heightMm": 500, "lengthMm": 1600, "qAt70": 2480 },
+        { "heightMm": 500, "lengthMm": 2000, "qAt70": 3100 }
+      ]
+    },
+    {
+      "id": "prado-classic-22-500",
+      "manufacturer": "ПРАДО",
+      "series": "Classic Type 22 h=500 (РФ)",
+      "kind": "panel",
+      "panelType": "22",
+      "nExponent": 1.3,
+      "isCustom": false,
+      "variants": [
+        { "heightMm": 500, "lengthMm": 400, "qAt70": 628 },
+        { "heightMm": 500, "lengthMm": 600, "qAt70": 942 },
+        { "heightMm": 500, "lengthMm": 800, "qAt70": 1256 },
+        { "heightMm": 500, "lengthMm": 1000, "qAt70": 1570 },
+        { "heightMm": 500, "lengthMm": 1200, "qAt70": 1884 },
+        { "heightMm": 500, "lengthMm": 1600, "qAt70": 2512 },
+        { "heightMm": 500, "lengthMm": 2000, "qAt70": 3140 }
+      ]
+    },
+    {
+      "id": "varmann-ntherm-300x90",
+      "manufacturer": "Varmann",
+      "series": "Ntherm 300×90",
+      "kind": "underfloor-convector",
+      "nExponent": 1.4,
+      "isCustom": false,
+      "widthMm": 300,
+      "depthMm": 90,
+      "variants": [
+        { "lengthMm": 1000, "qAt70": 680 },
+        { "lengthMm": 1500, "qAt70": 1020 },
+        { "lengthMm": 2000, "qAt70": 1360 },
+        { "lengthMm": 2500, "qAt70": 1700 },
+        { "lengthMm": 3000, "qAt70": 2040 }
+      ]
+    },
+    {
+      "id": "varmann-ntherm-300x110",
+      "manufacturer": "Varmann",
+      "series": "Ntherm 300×110",
+      "kind": "underfloor-convector",
+      "nExponent": 1.4,
+      "isCustom": false,
+      "widthMm": 300,
+      "depthMm": 110,
+      "variants": [
+        { "lengthMm": 1000, "qAt70": 860 },
+        { "lengthMm": 1500, "qAt70": 1290 },
+        { "lengthMm": 2000, "qAt70": 1720 },
+        { "lengthMm": 2500, "qAt70": 2150 },
+        { "lengthMm": 3000, "qAt70": 2580 }
+      ]
+    },
+    {
+      "id": "varmann-planokon-230x90",
+      "manufacturer": "Varmann",
+      "series": "PlanoKon 230×90",
+      "kind": "underfloor-convector",
+      "nExponent": 1.4,
+      "isCustom": false,
+      "widthMm": 230,
+      "depthMm": 90,
+      "variants": [
+        { "lengthMm": 1000, "qAt70": 540 },
+        { "lengthMm": 1500, "qAt70": 810 },
+        { "lengthMm": 2000, "qAt70": 1080 },
+        { "lengthMm": 2500, "qAt70": 1350 }
+      ]
+    },
+    {
+      "id": "kzto-bryza-260x80",
+      "manufacturer": "КЗТО",
+      "series": "Бриз 260×80",
+      "kind": "underfloor-convector",
+      "nExponent": 1.4,
+      "isCustom": false,
+      "widthMm": 260,
+      "depthMm": 80,
+      "variants": [
+        { "lengthMm": 1000, "qAt70": 580 },
+        { "lengthMm": 1500, "qAt70": 870 },
+        { "lengthMm": 2000, "qAt70": 1160 },
+        { "lengthMm": 2500, "qAt70": 1450 }
+      ]
+    },
+    {
+      "id": "kzto-solo-260x100",
+      "manufacturer": "КЗТО",
+      "series": "Соло 260×100",
+      "kind": "underfloor-convector",
+      "nExponent": 1.4,
+      "isCustom": false,
+      "widthMm": 260,
+      "depthMm": 100,
+      "variants": [
+        { "lengthMm": 1000, "qAt70": 720 },
+        { "lengthMm": 1500, "qAt70": 1080 },
+        { "lengthMm": 2000, "qAt70": 1440 },
+        { "lengthMm": 2500, "qAt70": 1800 }
+      ]
+    },
+    {
+      "id": "mohlenhoff-gkh-90",
+      "manufacturer": "Möhlenhoff",
+      "series": "GKH 90 мм",
+      "kind": "underfloor-convector",
+      "nExponent": 1.4,
+      "isCustom": false,
+      "widthMm": 250,
+      "depthMm": 90,
+      "variants": [
+        { "lengthMm": 1000, "qAt70": 620 },
+        { "lengthMm": 1500, "qAt70": 930 },
+        { "lengthMm": 2000, "qAt70": 1240 },
+        { "lengthMm": 2500, "qAt70": 1550 }
+      ]
+    },
+    {
+      "id": "licon-pk-130",
+      "manufacturer": "LICON",
+      "series": "PK 130 мм",
+      "kind": "underfloor-convector",
+      "nExponent": 1.4,
+      "isCustom": false,
+      "widthMm": 280,
+      "depthMm": 130,
+      "variants": [
+        { "lengthMm": 1000, "qAt70": 920 },
+        { "lengthMm": 1500, "qAt70": 1380 },
+        { "lengthMm": 2000, "qAt70": 1840 },
+        { "lengthMm": 2500, "qAt70": 2300 },
+        { "lengthMm": 3000, "qAt70": 2760 }
+      ]
+    }
+  ]
+}

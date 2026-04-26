@@ -1,0 +1,55 @@
+:root {
+  --color-bg: #FFFFFF;
+  --color-surface: #F8FAFC;
+  --color-border: #E2E8F0;
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #64748B;
+  --color-accent: #0284C7;
+  --color-accent-hover: #0369A1;
+  --color-success: #16A34A;
+  --color-warning: #D97706;
+  --color-destructive: #DC2626;
+  --color-info: #2563EB;
+
+  /* Enclosure type strip colors (Phase 2) */
+  --enc-wall: #2563EB;
+  --enc-window: #0EA5E9;
+  --enc-door: #6B7280;
+  --enc-ceiling: #D97706;
+  --enc-roof: #EA580C;
+  --enc-floor-ground: #92400E;
+  --enc-wall-int: transparent;
+  --enc-ceil-int: transparent;
+
+  /* Phase 4: ГЦК highlight */
+  --gck-bg: rgba(2, 132, 199, 0.10);
+  --gck-strip: #0284C7;
+}
+
+[data-theme="dark"] {
+  --color-bg: #0F172A;
+  --color-surface: #1E293B;
+  --color-border: #334155;
+  --color-text-primary: #F1F5F9;
+  --color-text-secondary: #94A3B8;
+  --color-accent: #38BDF8;
+  --color-accent-hover: #7DD3FC;
+  --color-success: #4ADE80;
+  --color-warning: #FBBF24;
+  --color-destructive: #F87171;
+  --color-info: #60A5FA;
+
+  /* Enclosure type strip colors (Phase 2) */
+  --enc-wall: #60A5FA;
+  --enc-window: #38BDF8;
+  --enc-door: #9CA3AF;
+  --enc-ceiling: #FBBF24;
+  --enc-roof: #FB923C;
+  --enc-floor-ground: #B45309;
+  --enc-wall-int: transparent;
+  --enc-ceil-int: transparent;
+
+  /* Phase 4: ГЦК highlight */
+  --gck-bg: rgba(56, 189, 248, 0.10);
+  --gck-strip: #38BDF8;
+}

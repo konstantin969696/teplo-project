@@ -1,0 +1,24 @@
+{
+  "_meta": {
+    "version": 1,
+    "generated": "2026-04-17",
+    "sources": {
+      "zeta": "Справочник Альтшуля/Исаева [ASSUMED A4]"
+    },
+    "note": "Редактируется через KmsCatalogModal. isCustom не хранится — добавляется при загрузке."
+  },
+  "elements": [
+    { "id": "elbow-90-smooth", "name": "Колено 90° (гладкое)", "zeta": 1.1 },
+    { "id": "elbow-90-rough", "name": "Колено 90° (резкое)", "zeta": 1.5 },
+    { "id": "tee-straight", "name": "Тройник на проход", "zeta": 0.5 },
+    { "id": "tee-branch", "name": "Тройник на ответвление", "zeta": 1.5 },
+    { "id": "valve-ball", "name": "Кран шаровый", "zeta": 0.15 },
+    { "id": "valve-balance", "name": "Кран балансировочный (открыт)", "zeta": 3.0 },
+    { "id": "filter-y", "name": "Фильтр косой", "zeta": 2.5 },
+    { "id": "check-valve", "name": "Обратный клапан", "zeta": 2.0 },
+    { "id": "radiator-entry", "name": "Вход в радиатор", "zeta": 1.3 },
+    { "id": "radiator-exit", "name": "Выход из радиатора", "zeta": 1.3 },
+    { "id": "expansion-sudden", "name": "Резкое расширение", "zeta": 0.5 },
+    { "id": "contraction-sudden", "name": "Резкое сужение", "zeta": 0.3 }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "_meta": {
+    "version": 1,
+    "generated": "2026-04-17",
+    "sources": {
+      "properties": "Инженерные справочники, значения при средней температуре системы 50°C [ASSUMED A6]"
+    },
+    "note": "Редактируется через CoolantCatalogModal. isCustom не хранится — добавляется при загрузке."
+  },
+  "coolants": [
+    { "id": "water", "name": "Вода", "rhoKgM3": 988, "cKjKgK": 4.181, "nuM2S": 5.53e-7 },
+    { "id": "glycol-30", "name": "Гликоль 30%", "rhoKgM3": 1040, "cKjKgK": 3.89, "nuM2S": 9.5e-7 },
+    { "id": "glycol-40", "name": "Гликоль 40%", "rhoKgM3": 1060, "cKjKgK": 3.69, "nuM2S": 1.3e-6 }
+  ]
+}

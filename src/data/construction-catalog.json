@@ -1,0 +1,66 @@
+{
+  "_meta": {
+    "version": 1,
+    "generated": "2026-04-16",
+    "basis": "СП 50.13330.2012 Приложение Е (типовые конструкции) + Приложение Т (λ материалов). Значения K Вт/(м²·°C) — ориентировочные, для конкретного проекта нужна индивидуальная проверка.",
+    "note": "Каталог типовых ограждающих конструкций. Для каждой — усреднённое K при условиях эксплуатации А (сухая зона) или Б (нормальная/влажная). Нормируемое R_норм считает движок автоматически на основе ГСОП твоего города."
+  },
+  "models": [
+    { "id": "wall-brick-510-no-ins", "name": "Кирпичная 510 мм без утепления", "type": "wall-ext", "kValue": 0.95, "note": "Старый фонд. R = 0.92 м²·°C/Вт — по нормам сегодня не проходит, но часто встречается на объектах реконструкции.", "category": "Кирпичные", "isCustom": false },
+    { "id": "wall-brick-510-eps-50", "name": "Кирпич 510 + ЭППС 50 мм", "type": "wall-ext", "kValue": 0.42, "note": "Минимальное утепление существующего фасада. R ≈ 2.4.", "category": "Кирпичные", "isCustom": false },
+    { "id": "wall-brick-510-eps-100", "name": "Кирпич 510 + ЭППС 100 мм", "type": "wall-ext", "kValue": 0.29, "note": "R ≈ 3.4 — проходит нормы для ГСОП ≤ 6000 (Москва, Питер, СЗФО).", "category": "Кирпичные", "isCustom": false },
+    { "id": "wall-brick-510-mw-150", "name": "Кирпич 510 + минвата 150 мм + штукатурка", "type": "wall-ext", "kValue": 0.22, "note": "Классическая «мокрый фасад». R ≈ 4.5 — проходит до ГСОП ~9000.", "category": "Кирпичные", "isCustom": false },
+    { "id": "wall-brick-380-mw-100", "name": "Кирпич 380 + минвата 100 мм", "type": "wall-ext", "kValue": 0.33, "note": "Подходит для южных регионов и средней полосы. R ≈ 3.0.", "category": "Кирпичные", "isCustom": false },
+
+    { "id": "wall-aerated-400-d400", "name": "Газобетон D400, 400 мм", "type": "wall-ext", "kValue": 0.28, "note": "Однослойная без доп. утепления. R ≈ 3.6. Проходит нормы до ГСОП ~6300 (Москва — впритык).", "category": "Газобетон", "isCustom": false },
+    { "id": "wall-aerated-400-d500", "name": "Газобетон D500, 400 мм", "type": "wall-ext", "kValue": 0.37, "note": "Более плотный → хуже по теплоизоляции. R ≈ 2.7. Требует доп. утепления в холодных регионах.", "category": "Газобетон", "isCustom": false },
+    { "id": "wall-aerated-400-d500-mw-100", "name": "Газобетон D500 400 + минвата 100 мм", "type": "wall-ext", "kValue": 0.21, "note": "R ≈ 4.8. Надёжно проходит до ГСОП 9000.", "category": "Газобетон", "isCustom": false },
+    { "id": "wall-aerated-300-d500-mw-100", "name": "Газобетон D500 300 + минвата 100 мм", "type": "wall-ext", "kValue": 0.23, "note": "R ≈ 4.3. Популярный вариант для частных домов.", "category": "Газобетон", "isCustom": false },
+
+    { "id": "wall-concrete-200-eps-150", "name": "Монолит ж/б 200 + ЭППС 150 мм", "type": "wall-ext", "kValue": 0.22, "note": "R ≈ 4.5. Типовое решение для многоквартирных новостроек класса B+.", "category": "Монолит/панель", "isCustom": false },
+    { "id": "wall-panel-3layer", "name": "Трёхслойная ж/б панель (150+150+80)", "type": "wall-ext", "kValue": 0.35, "note": "Советская серия. R ≈ 2.85. Часто не проходит норму, требует дополнительного утепления при капремонте.", "category": "Монолит/панель", "isCustom": false },
+
+    { "id": "wall-sip-174", "name": "SIP-панель 174 мм (16+142+16)", "type": "wall-ext", "kValue": 0.21, "note": "OSB + ПСБ + OSB. R ≈ 4.8. Частный сектор.", "category": "Каркас/SIP", "isCustom": false },
+    { "id": "wall-frame-mw-150", "name": "Каркас + минвата 150 мм + ветрозащита", "type": "wall-ext", "kValue": 0.27, "note": "Классика каркасного строительства. R ≈ 3.7.", "category": "Каркас/SIP", "isCustom": false },
+    { "id": "wall-frame-mw-200", "name": "Каркас + минвата 200 мм", "type": "wall-ext", "kValue": 0.21, "note": "R ≈ 4.8. Подходит для холодных регионов.", "category": "Каркас/SIP", "isCustom": false },
+
+    { "id": "wall-timber-200", "name": "Брус 200 мм (сосна)", "type": "wall-ext", "kValue": 0.70, "note": "R ≈ 1.4. Без доп. утепления проходит только в южных регионах. Красивая эстетика, но тепловая плохая.", "category": "Дерево", "isCustom": false },
+    { "id": "wall-timber-240-glue", "name": "Клеёный брус 240 мм", "type": "wall-ext", "kValue": 0.62, "note": "R ≈ 1.6. Чуть лучше бруса за счёт плотности и геометрии.", "category": "Дерево", "isCustom": false },
+
+    { "id": "window-single-chamber-glass", "name": "Однокамерный СПК 4-16-4 (обычное стекло)", "type": "window", "kValue": 2.80, "note": "R ≈ 0.36. Устаревший, дешёвый. Не проходит нормы почти нигде.", "category": "Окна (СПК)", "isCustom": false },
+    { "id": "window-two-chamber-standard", "name": "Двухкам. СПК 4-10-4-10-4 (обычное стекло)", "type": "window", "kValue": 1.80, "note": "R ≈ 0.56. Базовый масс-маркет. Проходит нормы в средней полосе.", "category": "Окна (СПК)", "isCustom": false },
+    { "id": "window-two-chamber-i-glass", "name": "Двухкам. СПК 4-10-4-10-4i (i-стекло)", "type": "window", "kValue": 1.40, "note": "R ≈ 0.71. Селективное покрытие снижает K на 20-30%. Рекомендация для новостроек.", "category": "Окна (СПК)", "isCustom": false },
+    { "id": "window-two-chamber-i-argon", "name": "Двухкам. СПК 4-10Ar-4-10Ar-4i", "type": "window", "kValue": 1.20, "note": "R ≈ 0.83. Аргон + i-стекло. Проходит нормы в большинстве регионов РФ.", "category": "Окна (СПК)", "isCustom": false },
+    { "id": "window-three-chamber", "name": "Трёхкам. СПК (премиум)", "type": "window", "kValue": 0.95, "note": "R ≈ 1.05. Для элитного жилья и северных регионов.", "category": "Окна (СПК)", "isCustom": false },
+    { "id": "window-wood-single", "name": "Деревянная рама + 1-кам СПК", "type": "window", "kValue": 1.70, "note": "Экологичный вариант. Евроокно. R ≈ 0.59.", "category": "Окна (деревянные)", "isCustom": false },
+    { "id": "window-velux-mansard", "name": "Мансардное окно (Velux и аналоги)", "type": "window", "kValue": 1.50, "note": "С деревянной рамой и 2-кам СПК. R ≈ 0.67.", "category": "Окна (спец)", "isCustom": false },
+    { "id": "window-vitraj-warm", "name": "Витраж (тёплая серия, алюминий)", "type": "window", "kValue": 2.20, "note": "R ≈ 0.45. Для общественных зданий. Требует специального расчёта.", "category": "Окна (спец)", "isCustom": false },
+
+    { "id": "door-metal-uninsulated", "name": "Металлическая без утепления", "type": "door-ext", "kValue": 2.80, "note": "R ≈ 0.36. Устаревший вариант, промерзает.", "category": "Двери металлич.", "isCustom": false },
+    { "id": "door-metal-mineral-wool", "name": "Металлическая с минватой 50 мм", "type": "door-ext", "kValue": 1.60, "note": "R ≈ 0.63. Массовая конструкция входных дверей.", "category": "Двери металлич.", "isCustom": false },
+    { "id": "door-metal-eps", "name": "Металлическая с ЭППС 50 мм", "type": "door-ext", "kValue": 1.30, "note": "R ≈ 0.77. Лучший теплоизоляционный вариант металлической двери.", "category": "Двери металлич.", "isCustom": false },
+    { "id": "door-wood-solid-60", "name": "Деревянная массив 60 мм", "type": "door-ext", "kValue": 2.10, "note": "R ≈ 0.48. Классическая деревянная дверь, без дополнительного утепления.", "category": "Двери деревянные", "isCustom": false },
+    { "id": "door-glass-2chamber", "name": "Стеклянная со стеклопакетом 2-кам", "type": "door-ext", "kValue": 1.80, "note": "R ≈ 0.56. Для крыльца/веранды/тамбура.", "category": "Двери остекл.", "isCustom": false },
+
+    { "id": "ceiling-attic-mw-150", "name": "Чердачное ж/б + минвата 150 мм", "type": "ceiling", "kValue": 0.29, "note": "R ≈ 3.45. Минимум для средней полосы.", "category": "Чердачные", "isCustom": false },
+    { "id": "ceiling-attic-mw-200", "name": "Чердачное ж/б + минвата 200 мм", "type": "ceiling", "kValue": 0.22, "note": "R ≈ 4.55. Рекомендуемый стандарт для новостроек.", "category": "Чердачные", "isCustom": false },
+    { "id": "ceiling-attic-mw-250", "name": "Чердачное ж/б + минвата 250 мм", "type": "ceiling", "kValue": 0.18, "note": "R ≈ 5.5. Для северных регионов.", "category": "Чердачные", "isCustom": false },
+    { "id": "ceiling-basement-eps-100", "name": "Над холодным подвалом ж/б + ЭППС 100 мм", "type": "ceiling", "kValue": 0.29, "note": "R ≈ 3.45.", "category": "Над подвалом", "isCustom": false },
+    { "id": "ceiling-basement-eps-150", "name": "Над холодным подвалом ж/б + ЭППС 150 мм", "type": "ceiling", "kValue": 0.22, "note": "R ≈ 4.55.", "category": "Над подвалом", "isCustom": false },
+    { "id": "ceiling-proezd-eps-200", "name": "Над проездом ж/б + ЭППС 200 мм", "type": "ceiling", "kValue": 0.17, "note": "R ≈ 5.9. Повышенные требования к перекрытиям над проездами (СП 50 п.5.2 таблица 3).", "category": "Над проездом", "isCustom": false },
+
+    { "id": "roof-pitched-mw-200", "name": "Скатная кровля + минвата 200 мм", "type": "roof", "kValue": 0.22, "note": "R ≈ 4.55. Типовое решение мансарды.", "category": "Кровли", "isCustom": false },
+    { "id": "roof-pitched-mw-250", "name": "Скатная кровля + минвата 250 мм", "type": "roof", "kValue": 0.18, "note": "R ≈ 5.5.", "category": "Кровли", "isCustom": false },
+    { "id": "roof-flat-inverse-eps-150", "name": "Плоская инверсионная кровля + ЭППС 150 мм", "type": "roof", "kValue": 0.22, "note": "R ≈ 4.55. Эксплуатируемая кровля, балласт поверх утеплителя.", "category": "Кровли", "isCustom": false },
+    { "id": "roof-flat-eps-200", "name": "Плоская + ЭППС 200 мм + рулонная гидроизоляция", "type": "roof", "kValue": 0.17, "note": "R ≈ 5.9.", "category": "Кровли", "isCustom": false },
+
+    { "id": "floor-ground-no-ins", "name": "Пол по грунту без утепления", "type": "floor-ground", "kValue": 0.0, "note": "R считается по зонам (СП 50 Приложение Е). K здесь справочный, расчёт реально по 4 зонам с R_ред.", "category": "Пол по грунту", "isCustom": false },
+    { "id": "floor-ground-eps-100", "name": "Пол по грунту + ЭППС 100 мм под стяжкой", "type": "floor-ground", "kValue": 0.0, "note": "R считается по зонам с учётом дополнительного сопротивления утеплителя.", "category": "Пол по грунту", "isCustom": false },
+
+    { "id": "wall-int-brick-120", "name": "Кирпичная перегородка 120 мм", "type": "wall-int", "kValue": 1.45, "note": "Внутренняя стена между разными температурными зонами (например, квартира — лестница).", "category": "Внутр. перегородки", "isCustom": false },
+    { "id": "wall-int-aerated-100", "name": "Газобетонная перегородка 100 мм", "type": "wall-int", "kValue": 0.95, "note": "Лёгкая перегородка.", "category": "Внутр. перегородки", "isCustom": false },
+    { "id": "wall-int-gkl-mw-50", "name": "ГКЛ на каркасе + минвата 50 мм", "type": "wall-int", "kValue": 0.85, "note": "Каркасная перегородка со звуко- и теплоизоляцией.", "category": "Внутр. перегородки", "isCustom": false },
+
+    { "id": "ceiling-int-concrete", "name": "Межэтажное ж/б 160 мм", "type": "ceiling-int", "kValue": 2.30, "note": "Между этажами с одинаковой температурой — обычно не требует учёта в теплопотерях.", "category": "Межэтажные", "isCustom": false }
+  ]
+}

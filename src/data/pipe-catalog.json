@@ -1,0 +1,34 @@
+{
+  "_meta": {
+    "version": 1,
+    "generated": "2026-04-17",
+    "sources": {
+      "steel-vgp": "ГОСТ 32415-2013 [VERIFIED]",
+      "copper": "ГОСТ Р 52318-2005 (EN 1057) [VERIFIED]",
+      "pe-x": "ГОСТ 32415-2013 [VERIFIED], maxLoopLength [ASSUMED A2]",
+      "pe-rt": "ГОСТ 32415-2013 [VERIFIED], maxLoopLength [ASSUMED A2]",
+      "mlcp": "ГОСТ 32416-2013 [VERIFIED], maxLoopLength [ASSUMED A2]",
+      "ppr": "ГОСТ Р 52134-2003 [VERIFIED]",
+      "roughness": "Справочник Исаева/Альтшуль [ASSUMED A3]"
+    },
+    "note": "Редактируется через PipeCatalogModal. isCustom не хранится — добавляется при загрузке."
+  },
+  "pipes": [
+    { "id": "steel-vgp-dn15", "material": "steel-vgp", "dnMm": 15, "innerDiameterMm": 15.7, "roughnessMm": 0.2, "wallThicknessMm": 2.8, "maxLoopLengthM": null },
+    { "id": "steel-vgp-dn20", "material": "steel-vgp", "dnMm": 20, "innerDiameterMm": 20.9, "roughnessMm": 0.2, "wallThicknessMm": 2.95, "maxLoopLengthM": null },
+    { "id": "steel-vgp-dn25", "material": "steel-vgp", "dnMm": 25, "innerDiameterMm": 27.1, "roughnessMm": 0.2, "wallThicknessMm": 3.2, "maxLoopLengthM": null },
+    { "id": "steel-vgp-dn32", "material": "steel-vgp", "dnMm": 32, "innerDiameterMm": 35.9, "roughnessMm": 0.2, "wallThicknessMm": 3.2, "maxLoopLengthM": null },
+    { "id": "copper-15-1", "material": "copper", "dnMm": 15, "innerDiameterMm": 13, "roughnessMm": 0.0015, "wallThicknessMm": 1, "maxLoopLengthM": null },
+    { "id": "copper-18-1", "material": "copper", "dnMm": 18, "innerDiameterMm": 16, "roughnessMm": 0.0015, "wallThicknessMm": 1, "maxLoopLengthM": null },
+    { "id": "copper-22-1", "material": "copper", "dnMm": 22, "innerDiameterMm": 20, "roughnessMm": 0.0015, "wallThicknessMm": 1, "maxLoopLengthM": null },
+    { "id": "copper-28-15", "material": "copper", "dnMm": 28, "innerDiameterMm": 25, "roughnessMm": 0.0015, "wallThicknessMm": 1.5, "maxLoopLengthM": null },
+    { "id": "pe-x-16-2", "material": "pe-x", "dnMm": 16, "innerDiameterMm": 12, "roughnessMm": 0.007, "wallThicknessMm": 2, "maxLoopLengthM": 90 },
+    { "id": "pe-x-20-2", "material": "pe-x", "dnMm": 20, "innerDiameterMm": 16, "roughnessMm": 0.007, "wallThicknessMm": 2, "maxLoopLengthM": 120 },
+    { "id": "pe-rt-16-2", "material": "pe-rt", "dnMm": 16, "innerDiameterMm": 12, "roughnessMm": 0.007, "wallThicknessMm": 2, "maxLoopLengthM": 90 },
+    { "id": "pe-rt-20-2", "material": "pe-rt", "dnMm": 20, "innerDiameterMm": 16, "roughnessMm": 0.007, "wallThicknessMm": 2, "maxLoopLengthM": 120 },
+    { "id": "mlcp-16-2", "material": "mlcp", "dnMm": 16, "innerDiameterMm": 12, "roughnessMm": 0.007, "wallThicknessMm": 2, "maxLoopLengthM": 100 },
+    { "id": "mlcp-20-2", "material": "mlcp", "dnMm": 20, "innerDiameterMm": 16, "roughnessMm": 0.007, "wallThicknessMm": 2, "maxLoopLengthM": 120 },
+    { "id": "ppr-20-34", "material": "ppr", "dnMm": 20, "innerDiameterMm": 13.2, "roughnessMm": 0.007, "wallThicknessMm": 3.4, "maxLoopLengthM": null },
+    { "id": "ppr-25-42", "material": "ppr", "dnMm": 25, "innerDiameterMm": 16.6, "roughnessMm": 0.007, "wallThicknessMm": 4.2, "maxLoopLengthM": null }
+  ]
+}
