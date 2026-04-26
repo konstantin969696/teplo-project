@@ -45,6 +45,10 @@ export interface Enclosure {
   readonly type: EnclosureType
   readonly orientation: Orientation | null  // null for internal types
   readonly area: number                     // gross area; net = area - Σ children.area for walls
+  // Optional dimensions: when both > 0, area is auto-computed (length × heightM).
+  // User may still type into area directly; in that case length/heightM stay as last entered (or undefined).
+  readonly length?: number
+  readonly heightM?: number
   readonly kValue: number          // K Вт/(м2*C)
   readonly nCoeff: number          // reduction factor n
   readonly nOverridden: boolean    // true when user changed n manually

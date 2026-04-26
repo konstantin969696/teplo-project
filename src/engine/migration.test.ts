@@ -22,7 +22,6 @@ function makeEmptyStores() {
   const equipment: Record<string, unknown> = {}
   const equipmentOrder: string[] = []
   const ufhLoops: Record<string, unknown> = {}
-  const ufhLoopOrder: string[] = []
   // projectFields is returned by-reference so Object.assign(getState(), {...}) persists
   const projectFields: Record<string, unknown> = {
     schemaVersion: undefined,
@@ -69,11 +68,13 @@ function makeEmptyStores() {
     },
     ufhLoopStore: {
       getState: () => ({
-        ufhLoops,
-        ufhLoopOrder,
-        bulkSetSystemId: (ids: string[], sysId: string) => {
-          for (const id of ids) {
-            if (ufhLoops[id]) (ufhLoops[id] as Record<string, unknown>).systemId = sysId
+        // Phase 04.3: mock matches the real ufhLoopStore API — `loops` keyed
+        // by id (no order-array), bulkSetSystemId is single-arg.
+        loops: ufhLoops,
+        loopsByRoom: {} as Record<string, string>,
+        bulkSetSystemId: (sysId: string) => {
+          for (const id of Object.keys(ufhLoops)) {
+            (ufhLoops[id] as Record<string, unknown>).systemId = sysId
           }
         }
       })
@@ -88,8 +89,9 @@ function makeV10Stores() {
   stores.segmentStore.getState().segmentOrder.push(...V10_SEGMENT_ORDER)
   Object.assign(stores.equipmentStore.getState().equipment, V10_EQUIPMENT)
   stores.equipmentStore.getState().equipmentOrder.push('eq-1')
-  Object.assign(stores.ufhLoopStore.getState().ufhLoops, V10_UFH_LOOPS)
-  stores.ufhLoopStore.getState().ufhLoopOrder.push('loop-1')
+  // Phase 04.3: real ufhLoopStore has no order-array — id присутствует
+  // в ключах ufhLoops (V10_UFH_LOOPS), миграция итерирует через Object.keys.
+  Object.assign(stores.ufhLoopStore.getState().loops, V10_UFH_LOOPS)
 
   // Set v1.0 project fields
   const projectState = stores.projectStore.getState()
@@ -127,7 +129,7 @@ describe('runV11Migration', () => {
       expect((stores.segmentStore.getState().segments[segId] as Record<string, unknown>).systemId).toBe(result.systemId)
     }
     expect((stores.equipmentStore.getState().equipment['eq-1'] as Record<string, unknown>).systemId).toBe(result.systemId)
-    expect((stores.ufhLoopStore.getState().ufhLoops['loop-1'] as Record<string, unknown>).systemId).toBe(result.systemId)
+    expect((stores.ufhLoopStore.getState().loops['loop-1'] as Record<string, unknown>).systemId).toBe(result.systemId)
   })
 
   it('is idempotent — second call returns { migrated: false, seeded: false, systemId: null }', () => {
@@ -166,6 +168,34 @@ describe('runV11Migration', () => {
   // Tests for "undefined orders in mock stores" removed: that scenario can no
   // longer occur in production through useSystemStore.getState(), so testing it
   // via raw mocks would be theatre.
+
+  // Phase 04.3: regression — useUfhLoopStore.bulkSetSystemId is single-arg
+  // `(systemId)`. Earlier migration mistakenly called `(ids, systemId)` which
+  // JS treats as `(systemId=ids[])`, leaving `systemId = []` on every loop.
+  // This test fails if the bug returns.
+  it('Phase 04.3: sets correct systemId on every UFH loop (record-only store, no order array)', () => {
+    const stores = makeEmptyStores()
+    // Populate two UFH loops without going through ufhLoopOrder (which doesn't exist).
+    Object.assign(stores.ufhLoopStore.getState().loops, {
+      'loop-A': { id: 'loop-A', roomId: 'r1' },
+      'loop-B': { id: 'loop-B', roomId: 'r2' }
+    })
+    // Trigger migration via legacy fields so hasMembers picks up Object.keys(loops).
+    Object.assign(stores.projectStore.getState(), {
+      tSupply: 80, tReturn: 60, schemaType: 'two-pipe-dead-end',
+      pipeMaterialId: 'steel-vgp-dn20', coolantId: 'water'
+    })
+
+    const result = runV11Migration(stores as Parameters<typeof runV11Migration>[0])
+
+    expect(result.migrated).toBe(true)
+    expect(typeof result.systemId).toBe('string')
+    const loops = stores.ufhLoopStore.getState().loops
+    expect((loops['loop-A'] as Record<string, unknown>).systemId).toBe(result.systemId)
+    expect((loops['loop-B'] as Record<string, unknown>).systemId).toBe(result.systemId)
+    // Anti-regression: ensure systemId is a string, not [] (the historical bug).
+    expect(Array.isArray((loops['loop-A'] as Record<string, unknown>).systemId)).toBe(false)
+  })
 })
 
 describe('migrateV10toV11Json — partial v1.0 fields', () => {

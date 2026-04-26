@@ -223,7 +223,12 @@ export function EnclosureRow({ enclosure, deltaT, isCorner, roomArea }: Enclosur
           <input
             type="number"
             value={enclosure.area || ''}
-            onChange={e => handleUpdate({ area: Math.max(0, parseFloat(e.target.value) || 0) })}
+            onChange={e => handleUpdate({
+              area: Math.max(0, parseFloat(e.target.value) || 0),
+              // Manual area edit clears L/H so they don't silently override on next render.
+              length: undefined,
+              heightM: undefined
+            })}
             onClick={e => e.stopPropagation()}
             min={0}
             step={0.1}
@@ -231,6 +236,53 @@ export function EnclosureRow({ enclosure, deltaT, isCorner, roomArea }: Enclosur
             className={`${inputClass} w-[64px] font-mono`}
             aria-label="Площадь ограждения"
           />
+          {/* Optional L × H auto-calc helper. Updates area when both > 0. */}
+          <div className="mt-1 flex items-center gap-1 text-xs text-[var(--color-text-secondary)]">
+            <input
+              type="number"
+              value={enclosure.length ?? ''}
+              onChange={e => {
+                const L = parseFloat(e.target.value)
+                const lengthNext = isFinite(L) && L > 0 ? L : undefined
+                const H = enclosure.heightM
+                const next: Partial<typeof enclosure> = { length: lengthNext }
+                if (lengthNext !== undefined && H !== undefined && H > 0) {
+                  next.area = +(lengthNext * H).toFixed(2)
+                }
+                handleUpdate(next)
+              }}
+              onClick={e => e.stopPropagation()}
+              min={0}
+              step={0.1}
+              placeholder="Д"
+              title="Длина, м"
+              className={`${inputClass} w-[56px] font-mono`}
+              aria-label="Длина ограждения, м"
+            />
+            <span className="opacity-60">×</span>
+            <input
+              type="number"
+              value={enclosure.heightM ?? ''}
+              onChange={e => {
+                const H = parseFloat(e.target.value)
+                const heightNext = isFinite(H) && H > 0 ? H : undefined
+                const L = enclosure.length
+                const next: Partial<typeof enclosure> = { heightM: heightNext }
+                if (heightNext !== undefined && L !== undefined && L > 0) {
+                  next.area = +(L * heightNext).toFixed(2)
+                }
+                handleUpdate(next)
+              }}
+              onClick={e => e.stopPropagation()}
+              min={0}
+              step={0.1}
+              placeholder="В"
+              title="Высота, м"
+              className={`${inputClass} w-[56px] font-mono`}
+              aria-label="Высота ограждения, м"
+            />
+            <span className="opacity-60">м</span>
+          </div>
           {OPENING_CHILD_TYPES.has(enclosure.type) && (
             <div className="mt-0.5">
               <select

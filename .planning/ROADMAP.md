@@ -10,7 +10,7 @@
 |---|------|--------|-------------|------------------|
 | 04.1 | Bootstrap & Cleanup (tail) | 🟡 in-progress | — | Доделать UAT всех bootstrap-сценариев, закрыть фазу. Был оборван при переезде. |
 | 04.2 | Root-cause `systemOrder undefined` | 🟢 closed (2026-04-26) | — | RCA подтверждена: persisted state мог содержать `systemOrder` неверного типа. Fix: `shapeMerge` в `safeStorage.ts` + `merge:` во всех 4 stores. `?? []` снят. См. `phases/04.2-system-order-rca/STATUS.md`. |
-| 04.3 | UFH-loop migration to systemId | 🔴 not-started | — | `ufhLoopOrder` отсутствует в `useUfhLoopStore` → systemId не ставится при миграции v1.0→v1.1. См. STATUS.md фазы 04.2. |
+| 04.3 | UFH-loop migration to systemId | 🟢 closed (2026-04-26) | — | Исправлен интерфейс `UfhLoopStoreState` в migration.ts, mock в тестах приведён к реальному API, добавлен регрессионный тест. См. `phases/04.3-ufh-loop-migration/STATUS.md`. |
 | 05 | Tab «Сводка» | 🔴 not-started | 04.2 | Заменить `EmptyTabState` на полноценный отчёт по объекту. Подготовка под экспорт. |
 | 06 | Экспорт PDF | 🔴 not-started | 05 | jsPDF, ГОСТ 2.104 рамка, штамп, выгрузка по разделам. |
 | 07 | Экспорт Excel | 🔴 not-started | 05 | ExcelJS, шаблон спецификации оборудования + ведомость теплопотерь. |

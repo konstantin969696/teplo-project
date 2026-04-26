@@ -169,10 +169,9 @@ export function RoomRow({ room, index, tOutside }: RoomRowProps) {
             <input
               type="number"
               value={room.height}
-              onChange={e => handleUpdate({ height: Math.max(2, Math.min(5, parseFloat(e.target.value) || 2.7)) })}
+              onChange={e => handleUpdate({ height: Math.max(0.1, parseFloat(e.target.value) || 2.7) })}
               onClick={e => e.stopPropagation()}
-              min={2}
-              max={5}
+              min={0.1}
               step={0.1}
               className={`${inputClass} w-[60px] font-mono`}
               aria-label={`Высота для ${room.name || 'помещение'}`}

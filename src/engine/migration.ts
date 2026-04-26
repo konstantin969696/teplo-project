@@ -52,9 +52,11 @@ interface EquipmentStoreState {
 }
 
 interface UfhLoopStoreState {
-  ufhLoops: Record<string, unknown>
-  ufhLoopOrder: string[]
-  bulkSetSystemId: (ids: string[], systemId: string) => void
+  // Real store uses `loops` (record) keyed by loop id and `loopsByRoom` index.
+  // No order-array — iteration is via Object.keys(loops). Phase 04.3.
+  loops: Record<string, unknown>
+  loopsByRoom: Record<string, string>
+  bulkSetSystemId: (systemId: string) => void
 }
 
 export interface MigrationApi {
@@ -104,7 +106,7 @@ export function runV11Migration(api: MigrationApi): MigrationResult {
   const hasMembers =
     segState.segmentOrder.length > 0 ||
     eqState.equipmentOrder.length > 0 ||
-    (ufhState.ufhLoopOrder ?? []).length > 0
+    Object.keys(ufhState.loops).length > 0
 
   // T-04.1-03-05: partial v1.0 — missing legacy fields fall back to DEFAULT_SYSTEM
   const systemFields: Omit<HeatingSystem, 'id' | 'name'> = {
@@ -123,9 +125,11 @@ export function runV11Migration(api: MigrationApi): MigrationResult {
   if (hasMembers) {
     segState.bulkSetSystemId([...segState.segmentOrder], systemId)
     eqState.bulkSetSystemId([...eqState.equipmentOrder], systemId)
-    // ufhLoopOrder doesn't actually exist on useUfhLoopStore (record-only store).
-    // Tracked as known-issue in .planning/phases/04.2-system-order-rca/STATUS.md.
-    ufhState.bulkSetSystemId([...(ufhState.ufhLoopOrder ?? [])], systemId)
+    // useUfhLoopStore.bulkSetSystemId takes a single argument (systemId) and
+    // applies it to all loops via Object.entries. Phase 04.3 fix — was buggy:
+    // migration used to call with `(ids[], systemId)` which JS treats as
+    // `(systemId=ids[])` due to positional args, leaving systemId = [] on every loop.
+    ufhState.bulkSetSystemId(systemId)
   }
 
   return {
