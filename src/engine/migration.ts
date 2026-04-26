@@ -79,9 +79,10 @@ export interface MigrationResult {
 export function runV11Migration(api: MigrationApi): MigrationResult {
   const systemState = api.systemStore.getState()
 
-  // T-04.1-03-03: idempotency guard — already migrated
-  // Defense-in-depth: `?? []` protects against hydration race / broken persisted state
-  if ((systemState.systemOrder ?? []).length > 0) {
+  // T-04.1-03-03: idempotency guard — already migrated.
+  // Phase 04.2: stores guarantee systemOrder is always an array via shapeMerge,
+  // so `?? []` defense-in-depth removed (covered by store-level invariant).
+  if (systemState.systemOrder.length > 0) {
     return { migrated: false, seeded: false, systemId: null }
   }
 
@@ -101,8 +102,8 @@ export function runV11Migration(api: MigrationApi): MigrationResult {
     project.coolantId !== undefined
 
   const hasMembers =
-    (segState.segmentOrder ?? []).length > 0 ||
-    (eqState.equipmentOrder ?? []).length > 0 ||
+    segState.segmentOrder.length > 0 ||
+    eqState.equipmentOrder.length > 0 ||
     (ufhState.ufhLoopOrder ?? []).length > 0
 
   // T-04.1-03-05: partial v1.0 — missing legacy fields fall back to DEFAULT_SYSTEM
@@ -120,8 +121,10 @@ export function runV11Migration(api: MigrationApi): MigrationResult {
   const systemId = systemState.addSystem({ name: 'Система 1', ...systemFields })
 
   if (hasMembers) {
-    segState.bulkSetSystemId([...(segState.segmentOrder ?? [])], systemId)
-    eqState.bulkSetSystemId([...(eqState.equipmentOrder ?? [])], systemId)
+    segState.bulkSetSystemId([...segState.segmentOrder], systemId)
+    eqState.bulkSetSystemId([...eqState.equipmentOrder], systemId)
+    // ufhLoopOrder doesn't actually exist on useUfhLoopStore (record-only store).
+    // Tracked as known-issue in .planning/phases/04.2-system-order-rca/STATUS.md.
     ufhState.bulkSetSystemId([...(ufhState.ufhLoopOrder ?? [])], systemId)
   }
 

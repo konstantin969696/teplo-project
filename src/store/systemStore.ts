@@ -15,7 +15,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { HeatingSystem, SystemState } from '../types/system'
-import { safeStorage } from './safeStorage'
+import { safeStorage, shapeMerge } from './safeStorage'
 import { uuid } from './uuid'
 
 const defaultSystemData = {
@@ -71,6 +71,11 @@ export const useSystemStore = create<SystemState>()(
         systems: state.systems,
         systemOrder: state.systemOrder
       } as unknown as SystemState),
+      // Phase 04.2: validate shape of persisted state, drop garbage to defaults.
+      merge: (persisted, current) => shapeMerge(persisted, current as SystemState, {
+        systems: 'record',
+        systemOrder: 'array-of-string'
+      }),
       onRehydrateStorage: () => (_state, error) => {
         if (error) {
           console.error('[systemStore] rehydration failed', error)

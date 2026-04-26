@@ -18,7 +18,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { toast } from 'sonner'
-import { safeStorage } from './safeStorage'
+import { safeStorage, shapeMerge } from './safeStorage'
 import { uuid } from './uuid'
 import type { Segment, KmsCounts } from '../types/hydraulics'
 
@@ -230,6 +230,11 @@ export const useSegmentStore = create<SegmentState>()(
         segments: state.segments,
         segmentOrder: state.segmentOrder
       } as unknown as SegmentState),
+      // Phase 04.2: validate shape of persisted state, drop garbage to defaults.
+      merge: (persisted, current) => shapeMerge(persisted, current as SegmentState, {
+        segments: 'record',
+        segmentOrder: 'array-of-string'
+      }),
       onRehydrateStorage: () => (_state, error) => {
         if (error) {
           console.error('Segment rehydration failed:', error)

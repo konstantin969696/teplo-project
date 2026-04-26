@@ -159,45 +159,13 @@ describe('runV11Migration', () => {
     expect(sys.tReturn).toBe(55)
   })
 
-  it('does not crash when systemOrder is undefined (hydration race / broken persisted state)', () => {
-    const stores = makeEmptyStores()
-    // Симулируем состояние, когда Zustand ещё не применил initial state —
-    // systemOrder может быть undefined в момент вызова миграции
-    const realGetState = stores.systemStore.getState
-    stores.systemStore.getState = () => {
-      const state = realGetState()
-      return { ...state, systemOrder: undefined as unknown as string[] }
-    }
-
-    expect(() =>
-      runV11Migration(stores as Parameters<typeof runV11Migration>[0])
-    ).not.toThrow()
-
-    // Undefined должен быть нормализован к "пустому стору" → seed
-    const result = runV11Migration(stores as Parameters<typeof runV11Migration>[0])
-    // Первый вызов уже выполнился выше, во втором сработает idempotency
-    // (после того как addSystem в первом вызове наполнил systemOrder)
-    expect(result.migrated).toBe(false)
-  })
-
-  it('does not crash when segment/equipment/ufhLoop orders are undefined', () => {
-    const stores = makeEmptyStores()
-    const realSeg = stores.segmentStore.getState
-    const realEq = stores.equipmentStore.getState
-    const realUfh = stores.ufhLoopStore.getState
-    stores.segmentStore.getState = () => ({ ...realSeg(), segmentOrder: undefined as unknown as string[] })
-    stores.equipmentStore.getState = () => ({ ...realEq(), equipmentOrder: undefined as unknown as string[] })
-    stores.ufhLoopStore.getState = () => ({ ...realUfh(), ufhLoopOrder: undefined as unknown as string[] })
-
-    expect(() =>
-      runV11Migration(stores as Parameters<typeof runV11Migration>[0])
-    ).not.toThrow()
-
-    const result = runV11Migration(stores as Parameters<typeof runV11Migration>[0])
-    // После первого (успешного) вызова — idempotent
-    expect(result.seeded).toBe(false)
-    expect(result.migrated).toBe(false)
-  })
+  // Phase 04.2 RCA: defensive `?? []` removed from migration.ts.
+  // The invariant "*Order is always an array" is now enforced at the store level
+  // via shapeMerge() in safeStorage.ts and verified in systemStore.persist.test.ts
+  // (S0..S4 — partial / null / non-array / corrupted-JSON persisted state).
+  // Tests for "undefined orders in mock stores" removed: that scenario can no
+  // longer occur in production through useSystemStore.getState(), so testing it
+  // via raw mocks would be theatre.
 })
 
 describe('migrateV10toV11Json — partial v1.0 fields', () => {

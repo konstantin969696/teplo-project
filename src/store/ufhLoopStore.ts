@@ -17,7 +17,7 @@
 
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import { safeStorage } from './safeStorage'
+import { safeStorage, shapeMerge } from './safeStorage'
 import { uuid } from './uuid'
 import type { UfhLoop } from '../types/hydraulics'
 
@@ -150,6 +150,11 @@ export const useUfhLoopStore = create<UfhLoopState>()(
         loops: state.loops,
         loopsByRoom: state.loopsByRoom
       } as unknown as UfhLoopState),
+      // Phase 04.2: validate shape of persisted state, drop garbage to defaults.
+      merge: (persisted, current) => shapeMerge(persisted, current as UfhLoopState, {
+        loops: 'record',
+        loopsByRoom: 'record'
+      }),
       onRehydrateStorage: () => (_state, error) => {
         if (error) {
           console.error('UFH loop rehydration failed:', error)

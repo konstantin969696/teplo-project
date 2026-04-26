@@ -14,7 +14,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { Equipment, EquipmentState } from '../types/project'
-import { safeStorage } from './safeStorage'
+import { safeStorage, shapeMerge } from './safeStorage'
 import { uuid } from './uuid'
 
 const defaultEquipmentData = {
@@ -114,6 +114,11 @@ export const useEquipmentStore = create<EquipmentState>()(
         equipment: state.equipment,
         equipmentOrder: state.equipmentOrder
       } as unknown as EquipmentState),
+      // Phase 04.2: validate shape of persisted state, drop garbage to defaults.
+      merge: (persisted, current) => shapeMerge(persisted, current as EquipmentState, {
+        equipment: 'record',
+        equipmentOrder: 'array-of-string'
+      }),
       onRehydrateStorage: () => (_state, error) => {
         if (error) {
           console.error('Equipment rehydration failed:', error)
