@@ -12,7 +12,7 @@
 | 04.2 | Root-cause `systemOrder undefined` | 🟢 closed (2026-04-26) | — | RCA подтверждена: persisted state мог содержать `systemOrder` неверного типа. Fix: `shapeMerge` в `safeStorage.ts` + `merge:` во всех 4 stores. `?? []` снят. См. `phases/04.2-system-order-rca/STATUS.md`. |
 | 04.3 | UFH-loop migration to systemId | 🟢 closed (2026-04-26) | — | Исправлен интерфейс `UfhLoopStoreState` в migration.ts, mock в тестах приведён к реальному API, добавлен регрессионный тест. См. `phases/04.3-ufh-loop-migration/STATUS.md`. |
 | 05 | Tab «Сводка» | 🟢 closed (2026-04-26) | — | `SummaryTab.tsx` — read-only сводка: объект, теплопотери, системы, приборы, UFH. Нормативная подпись СП 50/60/131. См. `phases/05-summary-tab/STATUS.md`. |
-| 06 | Экспорт-фундамент | 🔴 not-started | 05 | Форматы листов (A1/A2/A3/A4 + A3×N склейка), ГОСТ-рамка (2.104-2006 форма 1), форма штампа в UI с persistance, preview-модал. См. требования в PROJECT.md. |
+| 06 | Экспорт-фундамент | 🟢 closed (2026-04-26) | — | `src/export/` — types, формат-каталог, рамка+штамп, exportStore (persist+shapeMerge), 5 builders, PreviewModal, useExportPreview, кнопки в 5 табах. См. `phases/06-export-foundation/STATUS.md`. |
 | 07 | Экспорт PDF | 🔴 not-started | 06 | jsPDF поверх фундамента 06. |
 | 08 | Экспорт Excel | 🔴 not-started | 06 | ExcelJS поверх фундамента 06. |
 | 09 | Экспорт Word | 🔴 not-started | 06 | docx поверх фундамента 06. |

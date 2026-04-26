@@ -245,11 +245,11 @@ export function EnclosureRow({ enclosure, deltaT, isCorner, roomArea }: Enclosur
                 const L = parseFloat(e.target.value)
                 const lengthNext = isFinite(L) && L > 0 ? L : undefined
                 const H = enclosure.heightM
-                const next: Partial<typeof enclosure> = { length: lengthNext }
-                if (lengthNext !== undefined && H !== undefined && H > 0) {
-                  next.area = +(lengthNext * H).toFixed(2)
-                }
-                handleUpdate(next)
+                const update: Partial<typeof enclosure> =
+                  lengthNext !== undefined && H !== undefined && H > 0
+                    ? { length: lengthNext, area: +(lengthNext * H).toFixed(2) }
+                    : { length: lengthNext }
+                handleUpdate(update)
               }}
               onClick={e => e.stopPropagation()}
               min={0}
@@ -267,11 +267,11 @@ export function EnclosureRow({ enclosure, deltaT, isCorner, roomArea }: Enclosur
                 const H = parseFloat(e.target.value)
                 const heightNext = isFinite(H) && H > 0 ? H : undefined
                 const L = enclosure.length
-                const next: Partial<typeof enclosure> = { heightM: heightNext }
-                if (heightNext !== undefined && L !== undefined && L > 0) {
-                  next.area = +(L * heightNext).toFixed(2)
-                }
-                handleUpdate(next)
+                const update: Partial<typeof enclosure> =
+                  heightNext !== undefined && L !== undefined && L > 0
+                    ? { heightM: heightNext, area: +(L * heightNext).toFixed(2) }
+                    : { heightM: heightNext }
+                handleUpdate(update)
               }}
               onClick={e => e.stopPropagation()}
               min={0}

@@ -12,6 +12,8 @@ import { CopyFloorModal } from './CopyFloorModal'
 import { Button } from '../ui/Button'
 import { useProjectStore } from '../../store/projectStore'
 import { addRoomsToFloor } from '../room-actions'
+import { useExportPreview } from '../../export/useExportPreview'
+import { buildHeatLossDocument } from '../../export/content/builders'
 
 export function HeatLossTab() {
   const rooms = useProjectStore(s => s.rooms)
@@ -20,6 +22,7 @@ export function HeatLossTab() {
   const [showCopyFloor, setShowCopyFloor] = useState(false)
 
   const hasRooms = roomOrder.length > 0
+  const exportUI = useExportPreview(buildHeatLossDocument)
 
   const handleAddFloor = () => {
     const floors = Object.values(rooms).map(r => r.floor)
@@ -29,11 +32,15 @@ export function HeatLossTab() {
 
   return (
     <div className="mt-6 space-y-4">
-      <ActionBar
-        onAddFloor={handleAddFloor}
-        onCopyFloor={() => setShowCopyFloor(true)}
-        hasRooms={hasRooms}
-      />
+      <div className="flex items-center justify-between gap-3">
+        <ActionBar
+          onAddFloor={handleAddFloor}
+          onCopyFloor={() => setShowCopyFloor(true)}
+          hasRooms={hasRooms}
+        />
+        {hasRooms && exportUI.button}
+      </div>
+      {exportUI.modal}
 
       {hasRooms ? (
         <>

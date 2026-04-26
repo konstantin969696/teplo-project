@@ -14,6 +14,8 @@ import { useEquipmentStore } from '../../store/equipmentStore'
 import { useUfhLoopStore } from '../../store/ufhLoopStore'
 import { calculateRoomTotals } from '../../engine/heatLoss'
 import type { RoomHeatLossResult, Room } from '../../types/project'
+import { useExportPreview } from '../../export/useExportPreview'
+import { buildSummaryDocument } from '../../export/content/builders'
 
 const SCHEMA_LABEL: Record<string, string> = {
   'two-pipe-dead-end': 'Двухтруб. тупиковая',
@@ -82,6 +84,8 @@ export function SummaryTab() {
     [equipment, equipmentOrder]
   )
 
+  const exportUI = useExportPreview(buildSummaryDocument)
+
   const loopList = useMemo(
     () => Object.values(loops).filter(l => l.enabled),
     [loops]
@@ -99,6 +103,8 @@ export function SummaryTab() {
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">{exportUI.button}</div>
+      {exportUI.modal}
       {/* ─── Шапка объекта ─── */}
       <section className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
         <h2 className="text-base font-semibold mb-3">Объект</h2>

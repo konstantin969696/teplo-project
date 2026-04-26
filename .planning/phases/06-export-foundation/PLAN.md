@@ -125,14 +125,20 @@ interface Sheet {
 | 6 | `layout.ts` — пагинация | `src/export/sheet/layout.ts` | `layout.test.ts` (длинная таблица режется на N листов) |
 | 7 | `SheetCanvas.tsx` — SVG-рендер одного листа | `src/export/preview/SheetCanvas.tsx` | smoke-render |
 | 8 | `PreviewModal.tsx` — модал с навигацией + UI штампа + кнопки экспорта (заглушки на 07/08/09) | `src/export/preview/PreviewModal.tsx` | smoke-render, change format, fill stamp |
-| 9 | Кнопка «Экспорт…» в `SummaryTab` (открывает PreviewModal) | `src/components/summary/SummaryTab.tsx` | + smoke-тест |
+| 9 | Хук `useExportPreview(builder)` + 5 кнопок «Экспорт…» в каждом табе (HeatLossTab, EquipmentTab, HydraulicsTab, UfhTab, SummaryTab) | каждый Tab + общий хук `src/export/useExportPreview.ts` | + smoke-тест на хук |
 | 10 | STATUS.md + commit |  |  |
 
 ## Открытые вопросы
 
 1. **Форма штампа точная.** ГОСТ 2.104-2006 определяет 22+ графы. Нужно решить какие из них показывать в UI как заполняемые, какие — фиксированные/автоматические. Начну с минимального набора (см. `Stamp` выше), Костя дополнит по фактической потребности.
 2. **Шрифт.** ГОСТ требует чертёжный шрифт (ISO 3098 / ГОСТ 2.304). В PDF можно встроить freeware (`gostmono`) — для Excel/Word достаточно «Arial» как fallback. В preview — системный.
-3. **Где живёт кнопка «Экспорт…»?** В `SummaryTab` снизу — единая для всего отчёта. Или в каждом табе своя? Я выбираю единую в Сводке (теплопотери / приборы / гидравлика / тёплый пол попадают в один документ как разделы). Косте подтвердить.
+3. **Где живёт кнопка «Экспорт…»?** **Решение Кости (2026-04-26): вариант B — в каждой вкладке своя кнопка, отдельные документы по разделам.** Получается 5 билдеров:
+   - `buildHeatLossDocument` — теплопотери (по помещениям + ограждения)
+   - `buildEquipmentDocument` — приборы отопления
+   - `buildHydraulicsDocument` — гидравлический расчёт
+   - `buildUfhDocument` — тёплый пол
+   - `buildSummaryDocument` — общая сводка (поверх контента из `SummaryTab`)
+   Штамп общий (один `exportStore.stamp`), но каждый билдер задаёт свой `drawingTitle` («Теплопотери», «Спецификация приборов отопления» и т.д.) и предлагает дефолтный `markCode` («ОВ.001», «ОВ.002», ...).
 
 ## Что НЕ входит в 06
 
