@@ -2,7 +2,7 @@
  * Application shell: header, tab bar, content panels, toast provider.
  * Tab 0 (Теплопотери) renders ClimateCard + HeatLossTab; tab 1 (Приборы отопления)
  * renders EquipmentTab; tab 2 (Гидравлика) renders HydraulicsTab;
- * tab 3 (Тёплый пол) renders UfhTab; tab 4 shows EmptyTabState.
+ * tab 3 (Тёплый пол) renders UfhTab; tab 4 (Сводка) renders SummaryTab.
  */
 
 import { useEffect, useRef } from 'react'
@@ -10,11 +10,11 @@ import { toast, Toaster } from 'sonner'
 import { AppHeader } from './components/layout/AppHeader'
 import { TabBar } from './components/layout/TabBar'
 import { ClimateCard } from './components/climate/ClimateCard'
-import { EmptyTabState } from './components/ui/EmptyTabState'
 import { HeatLossTab } from './components/heatLoss/HeatLossTab'
 import { EquipmentTab } from './components/equipment/EquipmentTab'
 import { HydraulicsTab } from './components/hydraulics/HydraulicsTab'
 import { UfhTab } from './components/ufh/UfhTab'
+import { SummaryTab } from './components/summary/SummaryTab'
 import { runV11Migration } from './engine/migration'
 import { useProjectStore } from './store/projectStore'
 import { useSystemStore } from './store/systemStore'
@@ -94,7 +94,7 @@ export function App() {
             ) : i === 3 ? (
               <UfhTab />
             ) : (
-              <EmptyTabState tabName={name} />
+              <SummaryTab />
             )}
           </div>
         ))}

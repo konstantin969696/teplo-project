@@ -233,7 +233,7 @@ export function EnclosureRow({ enclosure, deltaT, isCorner, roomArea }: Enclosur
             min={0}
             step={0.1}
             placeholder="0.0"
-            className={`${inputClass} w-[64px] font-mono`}
+            className={`${inputClass} w-[96px] font-mono`}
             aria-label="Площадь ограждения"
           />
           {/* Optional L × H auto-calc helper. Updates area when both > 0. */}

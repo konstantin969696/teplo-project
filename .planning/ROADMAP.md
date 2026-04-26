@@ -11,7 +11,7 @@
 | 04.1 | Bootstrap & Cleanup (tail) | 🟡 in-progress | — | Доделать UAT всех bootstrap-сценариев, закрыть фазу. Был оборван при переезде. |
 | 04.2 | Root-cause `systemOrder undefined` | 🟢 closed (2026-04-26) | — | RCA подтверждена: persisted state мог содержать `systemOrder` неверного типа. Fix: `shapeMerge` в `safeStorage.ts` + `merge:` во всех 4 stores. `?? []` снят. См. `phases/04.2-system-order-rca/STATUS.md`. |
 | 04.3 | UFH-loop migration to systemId | 🟢 closed (2026-04-26) | — | Исправлен интерфейс `UfhLoopStoreState` в migration.ts, mock в тестах приведён к реальному API, добавлен регрессионный тест. См. `phases/04.3-ufh-loop-migration/STATUS.md`. |
-| 05 | Tab «Сводка» | 🔴 not-started | 04.2 | Заменить `EmptyTabState` на полноценный отчёт по объекту. Подготовка под экспорт. |
+| 05 | Tab «Сводка» | 🟢 closed (2026-04-26) | — | `SummaryTab.tsx` — read-only сводка: объект, теплопотери, системы, приборы, UFH. Нормативная подпись СП 50/60/131. См. `phases/05-summary-tab/STATUS.md`. |
 | 06 | Экспорт PDF | 🔴 not-started | 05 | jsPDF, ГОСТ 2.104 рамка, штамп, выгрузка по разделам. |
 | 07 | Экспорт Excel | 🔴 not-started | 05 | ExcelJS, шаблон спецификации оборудования + ведомость теплопотерь. |
 | 08 | UAT M1 + деплой | 🔴 not-started | 06, 07 | Сквозной прогон через Chromium, релиз на Vercel. |
