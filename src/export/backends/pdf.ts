@@ -442,42 +442,39 @@ function drawStampForm1(
   const titleArea = { x: tiX, y: tiY + ti.designationHeight, w: ti.width, h: ti.height - ti.designationHeight }
   drawWrappedCenteredText(doc, title, titleArea.x, titleArea.y, titleArea.w, titleArea.h, 4)
 
-  // ───── Графы 4/7/8 (Стадия/Лист/Листов) — 70×5 справа от title, на самом низу ─────
-  // Сетка: Стадия 15 | Лист 5 | Листов 20 — итого 40 (колонка title 70мм, у нас остаётся 30мм пустых...)
-  // По форме 1 эти графы шириной 65 мм (Стадия 15+5+5 + Лист 5+5+5 + Листов 5+5+10) — но упростим до 3 ячеек.
-  // Положим прямо под title справа — общая ширина 70мм (как title), разбита 30+15+5+20:
+  // ───── Графы 4/7/8 (Стадия/Лист/Листов) — 70×10 под title ─────
+  // 2 строки по 5мм: верх — заголовки, низ — значения. Колонки 30/20/20.
   const st = G.stage
   const stX = x + st.x
   const stY = y + st.y
-  // Высота 5мм — узкая полоска внизу title. Раздел разместим внутри 2-х строк (заголовок + значение)
-  // Но т.к. высота 5мм, проще: одна строка с цифрами через двоеточие.
-  // Для соответствия ГОСТу — рисуем как title-row с подзаголовками сверху над числами.
-  // Реализуем как: верх 2.5мм — заголовки (Стадия/Лист/Листов), низ 2.5мм — значения.
-  // Колонки: Стадия 30 | Лист 20 | Листов 20.
   const stCols = [
     { id: 'stage', label: 'Стадия', value: stamp.stageCode, w: 30 },
     { id: 'sheet', label: 'Лист', value: String(sheetIndex + 1), w: 20 },
     { id: 'sheets', label: 'Листов', value: String(sheetTotal), w: 20 }
   ]
-  // Линии — вертикальные между ячейками
+  // Верхняя горизонтальная линия (между title и stage)
+  doc.line(stX, stY, stX + st.width, stY)
+  // Средняя горизонтальная линия (между заголовками и значениями)
+  doc.line(stX, stY + st.height / 2, stX + st.width, stY + st.height / 2)
+  // Вертикальные разделители колонок
   let stCx = stX
   for (let i = 0; i < stCols.length - 1; i++) {
     stCx += stCols[i]!.w
     doc.line(stCx, stY, stCx, stY + st.height)
   }
-  doc.setFontSize(4.5)
+  // Заголовки (верхняя строка)
+  doc.setFontSize(5)
   doc.setFont(fontName, 'normal')
   doc.setTextColor(85, 85, 85)
-  // Заголовки сверху мелким шрифтом
   stCx = stX
   for (const col of stCols) {
     drawCenteredText(doc, col.label, stCx, stY, col.w, st.height / 2)
     stCx += col.w
   }
-  doc.setFontSize(7)
+  // Значения (нижняя строка)
+  doc.setFontSize(8)
   doc.setFont(fontName, 'bold')
   doc.setTextColor(0, 0, 0)
-  // Значения снизу
   stCx = stX
   for (const col of stCols) {
     drawCenteredText(doc, col.value, stCx, stY + st.height / 2, col.w, st.height / 2)

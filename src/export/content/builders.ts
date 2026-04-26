@@ -127,8 +127,7 @@ export function buildHeatLossDocument(): DocumentModel {
       ],
       rows,
       footer: ['Итого', '', '', '', '', '', { text: `${Math.round(totalQ)}`, bold: true }]
-    },
-    { kind: 'paragraph', text: 'Расчёт по СП 50.13330.2012, СП 131.13330.2020.' }
+    }
   ]
   return makeModel('heat-loss', 'Теплопотери', ctx, content)
 }

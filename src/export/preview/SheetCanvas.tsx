@@ -325,8 +325,14 @@ function StampForm1({ stamp, sheetIndex, sheetTotal, pos }: StampForm1Props) {
         </div>
       </foreignObject>
 
-      {/* === Графы 4/7/8 (Стадия / Лист / Листов) === */}
-      {/* Вертикальные разделители */}
+      {/* === Графы 4/7/8 (Стадия / Лист / Листов) — 70×10, 2 строки === */}
+      {/* Верхняя горизонтальная линия (между title и stage) */}
+      <line x1={stX} y1={stY} x2={stX + st.width} y2={stY}
+        stroke="black" strokeWidth={FRAME_LINE_THIN_MM} />
+      {/* Средняя горизонтальная линия (между заголовками и значениями) */}
+      <line x1={stX} y1={stY + st.height / 2} x2={stX + st.width} y2={stY + st.height / 2}
+        stroke="black" strokeWidth={FRAME_LINE_THIN_MM} />
+      {/* Вертикальные разделители колонок */}
       {(() => {
         let off = 0
         return stCols.slice(0, -1).map((c, i) => {
@@ -337,17 +343,19 @@ function StampForm1({ stamp, sheetIndex, sheetTotal, pos }: StampForm1Props) {
           )
         })
       })()}
+      {/* Текст в ячейках */}
       {(() => {
         let off = 0
         return stCols.map((c, i) => {
           const cellX = stX + off
           off += c.w
+          const halfH = st.height / 2
           return (
             <g key={`stc-${i}`}>
-              <text x={cellX + c.w / 2} y={stY + st.height * 0.4}
-                fontSize={2} fontFamily={FONT} fill="#666" textAnchor="middle">{c.label}</text>
-              <text x={cellX + c.w / 2} y={stY + st.height * 0.9}
-                fontSize={3} fontFamily={FONT} fontWeight={700} textAnchor="middle">{c.value}</text>
+              <text x={cellX + c.w / 2} y={stY + halfH * 0.7}
+                fontSize={2.8} fontFamily={FONT} fill="#555" textAnchor="middle">{c.label}</text>
+              <text x={cellX + c.w / 2} y={stY + halfH + halfH * 0.75}
+                fontSize={4} fontFamily={FONT} fontWeight={700} textAnchor="middle">{c.value}</text>
             </g>
           )
         })
