@@ -5,12 +5,14 @@
 
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { useExportStore } from '../store/exportStore'
 import { SHEET_FORMATS, findFormat } from '../sheet/formats'
 import { paginate } from '../sheet/layout'
 import { SheetCanvas } from './SheetCanvas'
-import type { DocumentModel, Stamp, Orientation } from '../types'
+import { exportToPdf } from '../backends/pdf'
+import { FONT_SOURCES } from '../backends/fontLoader'
+import type { DocumentModel, Stamp, Orientation, ExportFontFamily } from '../types'
 
 interface PreviewModalProps {
   readonly model: DocumentModel
@@ -25,8 +27,11 @@ export function PreviewModal({ model, onClose }: PreviewModalProps) {
   const setDefaultFormat = useExportStore(s => s.setDefaultFormat)
   const defaultOrientation = useExportStore(s => s.defaultOrientation)
   const setDefaultOrientation = useExportStore(s => s.setDefaultOrientation)
+  const fontFamily = useExportStore(s => s.fontFamily)
+  const setFontFamily = useExportStore(s => s.setFontFamily)
 
   const [sheetIdx, setSheetIdx] = useState(0)
+  const [exportingFmt, setExportingFmt] = useState<'pdf' | 'excel' | 'word' | null>(null)
 
   // Применяем поля штампа: общие сохраняем в store, drawingTitle/drawingMark
   // приходят из model (per-document). Если пользователь меняет drawingTitle/Mark
@@ -56,8 +61,31 @@ export function PreviewModal({ model, onClose }: PreviewModalProps) {
     return null
   }
 
-  const exportPlaceholder = (fmt: 'pdf' | 'excel' | 'word') => {
-    toast.info(`Экспорт в ${fmt.toUpperCase()} будет добавлен в фазе ${fmt === 'pdf' ? '07' : fmt === 'excel' ? '08' : '09'}.`)
+  const exportPlaceholder = (fmt: 'excel' | 'word') => {
+    toast.info(`Экспорт в ${fmt.toUpperCase()} будет добавлен в фазе ${fmt === 'excel' ? '08' : '09'}.`)
+  }
+
+  const handleExportPdf = async () => {
+    if (exportingFmt != null) return
+    setExportingFmt('pdf')
+    try {
+      const blob = await exportToPdf(effectiveModel, { fontFamily })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${effectiveModel.fileName}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      // Дать браузеру шанс начать скачивание перед revoke
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+      toast.success('PDF готов')
+    } catch (err) {
+      console.error('[export] PDF failed', err)
+      toast.error(`Ошибка экспорта PDF: ${err instanceof Error ? err.message : 'неизвестная'}`)
+    } finally {
+      setExportingFmt(null)
+    }
   }
 
   return (
@@ -110,6 +138,18 @@ export function PreviewModal({ model, onClose }: PreviewModalProps) {
             </div>
           </Section>
 
+          <Section title="Шрифт PDF">
+            <select
+              value={fontFamily}
+              onChange={e => setFontFamily(e.target.value as ExportFontFamily)}
+              className="w-full px-2 py-1.5 rounded border border-[var(--color-border)] bg-[var(--color-surface)]"
+            >
+              {(Object.entries(FONT_SOURCES) as [ExportFontFamily, typeof FONT_SOURCES[ExportFontFamily]][]).map(([id, src]) => (
+                <option key={id} value={id}>{src.label}</option>
+              ))}
+            </select>
+          </Section>
+
           <Section title="Параметры штампа">
             <StampForm
               stamp={stamp}
@@ -120,15 +160,29 @@ export function PreviewModal({ model, onClose }: PreviewModalProps) {
                 drawingMark: model.stamp.drawingMark
               })}
               onApplyAll={() => setStamp(stamp)}
+              onLogoChange={dataUrl => setStampField('logoDataUrl', dataUrl)}
             />
           </Section>
         </div>
 
         {/* Низ панели: кнопки экспорта */}
         <footer className="p-4 border-t border-[var(--color-border)] grid grid-cols-3 gap-2">
-          <ExportButton label="PDF" onClick={() => exportPlaceholder('pdf')} />
-          <ExportButton label="Excel" onClick={() => exportPlaceholder('excel')} />
-          <ExportButton label="Word" onClick={() => exportPlaceholder('word')} />
+          <ExportButton
+            label="PDF"
+            onClick={handleExportPdf}
+            disabled={exportingFmt != null}
+            busy={exportingFmt === 'pdf'}
+          />
+          <ExportButton
+            label="Excel"
+            onClick={() => exportPlaceholder('excel')}
+            disabled={exportingFmt != null}
+          />
+          <ExportButton
+            label="Word"
+            onClick={() => exportPlaceholder('word')}
+            disabled={exportingFmt != null}
+          />
         </footer>
       </aside>
 
@@ -178,12 +232,24 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-function ExportButton({ label, onClick }: { label: string; onClick: () => void }) {
+function ExportButton({
+  label,
+  onClick,
+  disabled,
+  busy
+}: {
+  label: string
+  onClick: () => void
+  disabled?: boolean
+  busy?: boolean
+}) {
   return (
     <button
       onClick={onClick}
-      className="px-3 py-2 rounded bg-[var(--color-accent,#3b82f6)] text-white text-sm font-medium hover:opacity-90"
+      disabled={disabled}
+      className="px-3 py-2 rounded bg-[var(--color-accent,#3b82f6)] text-white text-sm font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
     >
+      {busy && <Loader2 size={14} className="animate-spin" />}
       {label}
     </button>
   )
@@ -195,9 +261,34 @@ interface StampFormProps {
   readonly onPerDocChange: (key: 'drawingTitle' | 'drawingMark', value: string) => void
   readonly onResetPerDoc: () => void
   readonly onApplyAll: () => void
+  readonly onLogoChange: (dataUrl: string | undefined) => void
 }
 
-function StampForm({ stamp, onCommonChange, onPerDocChange, onResetPerDoc, onApplyAll }: StampFormProps) {
+const LOGO_MAX_BYTES = 200 * 1024
+
+function StampForm({ stamp, onCommonChange, onPerDocChange, onResetPerDoc, onApplyAll, onLogoChange }: StampFormProps) {
+  const handleLogoFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > LOGO_MAX_BYTES) {
+      toast.error(`Лого слишком большое (${(file.size / 1024).toFixed(0)} KB). Лимит — 200 KB.`)
+      e.target.value = ''
+      return
+    }
+    if (!/^image\/(png|jpe?g)$/.test(file.type)) {
+      toast.error('Поддерживаются только PNG/JPEG.')
+      e.target.value = ''
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result
+      if (typeof result === 'string') onLogoChange(result)
+    }
+    reader.onerror = () => toast.error('Не удалось прочитать файл лого.')
+    reader.readAsDataURL(file)
+  }
+
   return (
     <div className="space-y-2">
       <Field label="Наименование чертежа" hint="на этом документе">
@@ -249,6 +340,32 @@ function StampForm({ stamp, onCommonChange, onPerDocChange, onResetPerDoc, onApp
 
       <Field label="Организация"><input value={stamp.companyName} onChange={e => onCommonChange('companyName', e.target.value)} className="w-full px-2 py-1 rounded border border-[var(--color-border)] bg-[var(--color-surface)]" /></Field>
       <Field label="Подразделение"><input value={stamp.companyDept} onChange={e => onCommonChange('companyDept', e.target.value)} className="w-full px-2 py-1 rounded border border-[var(--color-border)] bg-[var(--color-surface)]" /></Field>
+
+      <Field label="Лого" hint="PNG/JPEG, до 200 KB">
+        <div className="space-y-1.5">
+          {stamp.logoDataUrl && (
+            <div className="flex items-center gap-2">
+              <img
+                src={stamp.logoDataUrl}
+                alt="Лого"
+                className="h-12 w-12 object-contain border border-[var(--color-border)] rounded bg-white"
+              />
+              <button
+                onClick={() => onLogoChange(undefined)}
+                className="text-xs text-red-600 underline"
+              >
+                удалить
+              </button>
+            </div>
+          )}
+          <input
+            type="file"
+            accept="image/png,image/jpeg"
+            onChange={handleLogoFile}
+            className="w-full text-xs file:mr-2 file:px-2 file:py-1 file:rounded file:border file:border-[var(--color-border)] file:bg-[var(--color-surface)] file:text-xs"
+          />
+        </div>
+      </Field>
 
       <button onClick={onApplyAll} className="text-xs text-[var(--color-text-secondary)] underline mt-1">сохранить все поля как параметры по умолчанию</button>
     </div>

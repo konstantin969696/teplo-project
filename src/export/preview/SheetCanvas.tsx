@@ -201,13 +201,23 @@ function StampBlock({ stamp, sheetIndex, sheetTotal, pos }: StampBlockProps) {
       <line x1={x + colA + colB} y1={y + 13} x2={x + W} y2={y + 13} stroke="black" strokeWidth={FRAME_LINE_THIN_MM} />
       <text x={x + colA + colB + 1} y={y + 17} fontSize={2.5} fontFamily={FONT}>{formatSheetCounter(sheetIndex, sheetTotal)}</text>
       <line x1={x + colA + colB} y1={y + 20} x2={x + W} y2={y + 20} stroke="black" strokeWidth={FRAME_LINE_THIN_MM} />
-      <foreignObject x={x + colA + colB + 1} y={y + 22} width={W - colA - colB - 2} height={H - 24}>
+      <foreignObject x={x + colA + colB + 1} y={y + 22} width={W - colA - colB - 2} height={20}>
         <div style={{ font: `2.6px ${FONT}` }}>
           <div><b>{stamp.companyName}</b></div>
           <div style={{ color: '#555' }}>{stamp.companyDept}</div>
           <div style={{ marginTop: '1mm', color: '#555' }}>{stamp.objectName}</div>
         </div>
       </foreignObject>
+      {stamp.logoDataUrl && (
+        <image
+          href={stamp.logoDataUrl}
+          x={x + colA + colB + 1}
+          y={y + 43}
+          width={W - colA - colB - 2}
+          height={11}
+          preserveAspectRatio="xMinYMid meet"
+        />
+      )}
     </g>
   )
 }
