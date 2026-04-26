@@ -31,7 +31,15 @@ export interface Stamp {
   readonly companyName: string
   readonly companyDept: string
   readonly date: string                // ISO YYYY-MM-DD; в штампе — DD.MM.YYYY
+  readonly logoDataUrl?: string        // base64 data URL, опционально, рендерится в правом блоке штампа
 }
+
+/**
+ * Шрифт для PDF-экспорта.
+ *  - 'roboto' — обычный sans-serif с кириллицей (Roboto Regular/Bold)
+ *  - 'gost'   — чертёжный ГОСТ 2.304 (GOST type A italic)
+ */
+export type ExportFontFamily = 'roboto' | 'gost'
 
 // ─── Content blocks ───
 // Format-agnostic primitives. Каждый блок имеет фиксированную "идеальную" высоту в мм
