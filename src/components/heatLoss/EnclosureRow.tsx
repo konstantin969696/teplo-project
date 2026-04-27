@@ -98,6 +98,7 @@ export function EnclosureRow({ enclosure, deltaT, isCorner, roomArea }: Enclosur
 
   // Compliance against СП 50.13330 for the current city's ГСОП
   const gsop = useProjectStore(s => s.city?.gsop ?? null)
+  const tInside = useProjectStore(s => s.rooms[enclosure.roomId]?.tInside ?? 20)
   const normativeVerdict = useMemo(
     () => checkNormative(enclosure.type, enclosure.kValue, gsop),
     [enclosure.type, enclosure.kValue, gsop]
@@ -132,13 +133,21 @@ export function EnclosureRow({ enclosure, deltaT, isCorner, roomArea }: Enclosur
 
   // Compute Q for this enclosure — walls use netArea (gross − children) so
   // windows/doors don't double-count with their parent wall.
+  // Mirror engine logic: when tAdjacent is known, use per-enclosure deltaT.
+  const encDeltaT = (deltaT !== null && enclosure.tAdjacent !== null)
+    ? Math.max(0, tInside - enclosure.tAdjacent)
+    : deltaT
+  const encNCoeff = (enclosure.tAdjacent !== null && !enclosure.nOverridden)
+    ? 1.0
+    : enclosure.nCoeff
+
   let qValue: number | null = null
-  if (deltaT !== null && enclosure.type !== 'floor-ground') {
+  if (encDeltaT !== null && enclosure.type !== 'floor-ground') {
     qValue = calculateQBasic(
       enclosure.kValue,
       netArea,
-      deltaT,
-      enclosure.nCoeff,
+      encDeltaT,
+      encNCoeff,
       enclosure.orientation,
       isCorner
     )
@@ -155,15 +164,21 @@ export function EnclosureRow({ enclosure, deltaT, isCorner, roomArea }: Enclosur
 
   // Build audit string
   const auditString = useMemo(() => {
-    if (deltaT === null) return null
-    if (enclosure.type === 'floor-ground' && floorZones) {
+    if (encDeltaT === null) return null
+    if (enclosure.type === 'floor-ground' && floorZones && deltaT !== null) {
       return buildFloorZoneAuditString(floorZones, deltaT)
     }
     if (qValue !== null) {
-      return buildEnclosureAuditString(enclosure, deltaT, isCorner, qValue, netArea)
+      return buildEnclosureAuditString(
+        { ...enclosure, nCoeff: encNCoeff },
+        encDeltaT,
+        isCorner,
+        qValue,
+        netArea
+      )
     }
     return null
-  }, [enclosure, deltaT, isCorner, qValue, floorZones, netArea])
+  }, [enclosure, encDeltaT, encNCoeff, deltaT, isCorner, qValue, floorZones, netArea])
 
   const isFloorGround = enclosure.type === 'floor-ground'
 
@@ -364,8 +379,10 @@ export function EnclosureRow({ enclosure, deltaT, isCorner, roomArea }: Enclosur
               className="text-sm font-mono text-[var(--color-text-primary)] hover:text-[var(--color-accent)] cursor-pointer"
               title="Нажмите для ручного ввода"
             >
-              {enclosure.nCoeff}
-              <span className="ml-1 text-xs text-[var(--color-text-secondary)]">Авто</span>
+              {encNCoeff}
+              <span className="ml-1 text-xs text-[var(--color-text-secondary)]">
+                {enclosure.tAdjacent !== null ? 'Авто (t_adj)' : 'Авто'}
+              </span>
             </button>
           )}
         </td>
@@ -408,6 +425,53 @@ export function EnclosureRow({ enclosure, deltaT, isCorner, roomArea }: Enclosur
               deltaT={deltaT}
               roomArea={roomArea}
             />
+          </td>
+        </tr>
+      )}
+
+      {/* Adjacent heated space controls (all types except floor-ground) */}
+      {!isFloorGround && (
+        <tr style={{ borderLeft: `4px solid var(${config.colorVar})` }}>
+          <td colSpan={7} className="px-3 py-1 bg-[var(--color-surface)]/60">
+            <div className="flex items-center gap-3 flex-wrap text-xs text-[var(--color-text-secondary)]">
+              <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={enclosure.tAdjacent !== null}
+                  onChange={e => handleUpdate({ tAdjacent: e.target.checked ? tInside : null })}
+                  onClick={ev => ev.stopPropagation()}
+                  aria-label="Примыкает к отапливаемому помещению"
+                />
+                <span>Примыкает к отапливаемому</span>
+              </label>
+              {enclosure.tAdjacent !== null && (
+                <>
+                  <label className="flex items-center gap-1 cursor-pointer">
+                    <span>t соседа, °C:</span>
+                    <input
+                      type="number"
+                      value={enclosure.tAdjacent}
+                      onChange={e => handleUpdate({ tAdjacent: parseFloat(e.target.value) ?? tInside })}
+                      onClick={ev => ev.stopPropagation()}
+                      min={-10}
+                      max={40}
+                      step={1}
+                      className={`${inputClass} w-[56px] font-mono py-0.5`}
+                      aria-label="Температура смежного помещения, °C"
+                    />
+                  </label>
+                  {!enclosure.nOverridden && (
+                    <span className="text-[var(--color-text-secondary)] italic">n = 1 (авто, задана t соседа)</span>
+                  )}
+                  {enclosure.tAdjacent >= tInside && (
+                    <span className="text-[var(--color-success,#16a34a)]">q = 0 (t соседа ≥ t помещения)</span>
+                  )}
+                  {enclosure.tAdjacent < (deltaT !== null ? tInside - deltaT : -999) && (
+                    <span className="text-[var(--color-warning)]">t соседа ниже наружной — проверьте ввод</span>
+                  )}
+                </>
+              )}
+            </div>
           </td>
         </tr>
       )}
