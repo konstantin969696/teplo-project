@@ -6,13 +6,13 @@
  * Phase 05: stays read-only and on-screen only — no export buttons yet.
  */
 
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useProjectStore } from '../../store/projectStore'
 import { useSystemStore } from '../../store/systemStore'
 import { useEnclosureStore } from '../../store/enclosureStore'
 import { useEquipmentStore } from '../../store/equipmentStore'
 import { useUfhLoopStore } from '../../store/ufhLoopStore'
-import { calculateRoomTotals } from '../../engine/heatLoss'
+import { getEngineWorker } from '../../workers/useEngineWorker'
 import type { RoomHeatLossResult, Room } from '../../types/project'
 import { useExportPreview } from '../../export/useExportPreview'
 import { buildSummaryDocument } from '../../export/content/builders'
@@ -57,22 +57,45 @@ export function SummaryTab() {
     [systemsMap, systemOrder]
   )
 
+  const [results, setResults] = useState<readonly RoomHeatLossResult[]>([])
+  const [calculating, setCalculating] = useState(false)
+
+  useEffect(() => {
+    if (city == null) {
+      setResults([])
+      return
+    }
+    let cancelled = false
+    setCalculating(true)
+    getEngineWorker()
+      .heatLossForRooms(enclosures, enclosureOrder, rooms, roomOrder, city.tOutside)
+      .then(res => {
+        if (!cancelled) {
+          setResults(res)
+          setCalculating(false)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setCalculating(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [city, rooms, roomOrder, enclosures, enclosureOrder])
+
   const rows = useMemo<readonly RoomSummaryRow[]>(() => {
     if (city == null) return []
-    const tOutside = city.tOutside
-    return roomOrder
-      .map((rid): RoomSummaryRow | null => {
+    // Worker фильтрует roomOrder по rooms[id] != null -- мы должны индексироваться по той же выборке.
+    const existingRoomIds = roomOrder.filter(id => rooms[id] != null)
+    return existingRoomIds
+      .map((rid, idx): RoomSummaryRow | null => {
         const room = rooms[rid]
-        if (!room) return null
-        const dt = room.tInside - tOutside
-        const roomEncs = enclosureOrder
-          .filter(eid => enclosures[eid]?.roomId === rid)
-          .map(eid => enclosures[eid])
-          .filter((e): e is NonNullable<typeof e> => e != null)
-        return { room, result: calculateRoomTotals(roomEncs, room, dt) }
+        const result = results[idx]
+        if (!room || !result) return null
+        return { room, result }
       })
       .filter((r): r is RoomSummaryRow => r !== null)
-  }, [city, rooms, roomOrder, enclosures, enclosureOrder])
+  }, [city, rooms, roomOrder, results])
 
   const totalQ = useMemo(
     () => rows.reduce((acc, r) => acc + r.result.qTotal, 0),
