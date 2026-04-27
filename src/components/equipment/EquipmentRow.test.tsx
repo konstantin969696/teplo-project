@@ -6,9 +6,33 @@
  * summary-level testids q-required / q-actual-sum / surplus-pct.
  */
 
-import { beforeEach, describe, expect, it } from 'vitest'
-import { render, screen, act } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { render, screen, act, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
+import { calculateRoomTotals } from '../../engine/heatLoss'
+
+vi.mock('../../workers/useEngineWorker', () => ({
+  getEngineWorker: () => ({
+    heatLossForRooms: async (
+      enclosures: Record<string, never>,
+      enclosureOrder: string[],
+      rooms: Record<string, never>,
+      roomOrder: string[],
+      tOutside: number
+    ) => {
+      const enclList = enclosureOrder.map(id => enclosures[id]).filter(Boolean)
+      return roomOrder
+        .map(id => rooms[id])
+        .filter(Boolean)
+        .map(room => {
+          const re = enclList.filter(e => (e as { roomId: string }).roomId === (room as { id: string }).id)
+          const dt = (room as { tInside: number }).tInside - tOutside
+          return calculateRoomTotals(re as never, room as never, dt)
+        })
+    },
+  }),
+}))
+
 import { EquipmentRow } from './EquipmentRow'
 import { useProjectStore } from '../../store/projectStore'
 import { useEnclosureStore } from '../../store/enclosureStore'
@@ -98,7 +122,7 @@ describe('EquipmentRow integration', () => {
     })
   })
 
-  it('recomputes qRequired when enclosure area changes', () => {
+  it('recomputes qRequired when enclosure area changes', async () => {
     useEquipmentStore.getState().addEquipment({
       roomId: 'room-A',
       kind: 'bimetal',
@@ -116,10 +140,11 @@ describe('EquipmentRow integration', () => {
     bindAllToDefaultSystem()
 
     renderRow(baseRoom)
+    await waitFor(() => expect(screen.getByTestId('q-required').textContent).not.toBe('—'))
     const before = screen.getByTestId('q-required').textContent
 
     const enclosureId = useEnclosureStore.getState().enclosureOrder[0]
-    act(() => {
+    await act(async () => {
       useEnclosureStore.getState().updateEnclosure(enclosureId!, { area: 24 })
     })
 
@@ -128,7 +153,7 @@ describe('EquipmentRow integration', () => {
     expect(parseFloat(after ?? '0')).toBeGreaterThan(parseFloat(before ?? '0'))
   })
 
-  it('recomputes Σ Q_факт when tSupply changes in projectStore', () => {
+  it('recomputes Σ Q_факт when tSupply changes in projectStore', async () => {
     useEquipmentStore.getState().addEquipment({
       roomId: 'room-A',
       kind: 'bimetal',
@@ -146,6 +171,7 @@ describe('EquipmentRow integration', () => {
     bindAllToDefaultSystem()
 
     renderRow(baseRoom)
+    await waitFor(() => expect(screen.getByTestId('q-actual-sum').textContent).not.toBe('—'))
     const before = screen.getByTestId('q-actual-sum').textContent
 
     act(() => {
@@ -157,7 +183,7 @@ describe('EquipmentRow integration', () => {
     expect(after).not.toBe(before)
   })
 
-  it('recomputes Σ Q_факт and surplusPct when equipment.connection changes', () => {
+  it('recomputes Σ Q_факт and surplusPct when equipment.connection changes', async () => {
     const id = useEquipmentStore.getState().addEquipment({
       roomId: 'room-A',
       kind: 'bimetal',
@@ -175,6 +201,7 @@ describe('EquipmentRow integration', () => {
     bindAllToDefaultSystem()
 
     renderRow(baseRoom)
+    await waitFor(() => expect(screen.getByTestId('q-actual-sum').textContent).not.toBe('—'))
     const qBefore = screen.getByTestId('q-actual-sum').textContent
     const sBefore = screen.getByTestId('surplus-pct').textContent
 
@@ -189,7 +216,7 @@ describe('EquipmentRow integration', () => {
     expect(parseFloat(qAfter ?? '0')).toBeLessThan(parseFloat(qBefore ?? '0'))
   })
 
-  it('shows em-dash in Σ Q_факт column after all equipment deleted', () => {
+  it('shows em-dash in Σ Q_факт column after all equipment deleted', async () => {
     const id = useEquipmentStore.getState().addEquipment({
       roomId: 'room-A',
       kind: 'bimetal',
@@ -207,10 +234,8 @@ describe('EquipmentRow integration', () => {
     bindAllToDefaultSystem()
 
     renderRow(baseRoom)
-    // before delete: equipment-count shows "1"
+    await waitFor(() => expect(screen.getByTestId('q-actual-sum').textContent).not.toBe('—'))
     expect(screen.getByTestId('equipment-count').textContent).toBe('1')
-    const beforeSum = screen.getByTestId('q-actual-sum').textContent
-    expect(beforeSum).not.toBe('—')
 
     act(() => {
       useEquipmentStore.getState().deleteEquipment(id)
@@ -218,7 +243,6 @@ describe('EquipmentRow integration', () => {
 
     expect(screen.getByTestId('equipment-count').textContent).toBe('—')
     expect(screen.getByTestId('q-actual-sum').textContent).toBe('—')
-    // Room name still rendered because Q_пом doesn't depend on equipment
     expect(screen.getByText(/Гостиная/)).toBeInTheDocument()
   })
 })
@@ -275,16 +299,16 @@ describe('ufh cascade (D-17)', () => {
     useUfhLoopStore.setState({ loops: {}, loopsByRoom: {} })
   })
 
-  it('qRequired equals Q_пом when no UFH loop exists', () => {
+  it('qRequired equals Q_пом when no UFH loop exists', async () => {
     renderRow(ufhRoom)
-    // No UFH loop → qRequired = Q_пом (Phase 3 behavior preserved)
+    await waitFor(() => expect(screen.getByTestId('q-required').textContent).not.toBe('—'))
     const text = screen.getByTestId('q-required').textContent
-    expect(text).not.toBe('—')
     expect(parseFloat(text ?? '0')).toBeGreaterThan(0)
   })
 
-  it('qRequired equals Q_пом when UFH loop exists but is disabled', () => {
+  it('qRequired equals Q_пом when UFH loop exists but is disabled', async () => {
     renderRow(ufhRoom)
+    await waitFor(() => expect(screen.getByTestId('q-required').textContent).not.toBe('—'))
     const qWithoutUfh = screen.getByTestId('q-required').textContent
 
     act(() => {
@@ -292,18 +316,17 @@ describe('ufh cascade (D-17)', () => {
         roomId: 'room-UFH', enabled: true, activeAreaM2: 1, covering: 'tile',
         pipeId: 'pe-x-16-2', stepCm: 20, leadInM: 3
       })
-      useUfhLoopStore.getState().toggleEnabled(loopId) // disable it
+      useUfhLoopStore.getState().toggleEnabled(loopId)
     })
 
     const qAfter = screen.getByTestId('q-required').textContent
-    // disabled UFH → same as without UFH
     expect(qAfter).toBe(qWithoutUfh)
   })
 
-  it('qRequired subtracts Q_тп when UFH enabled', () => {
+  it('qRequired subtracts Q_тп when UFH enabled', async () => {
     renderRow(ufhRoom)
-    const qRoomText = screen.getByTestId('q-required').textContent
-    const qRoom = parseFloat(qRoomText ?? '0')
+    await waitFor(() => expect(screen.getByTestId('q-required').textContent).not.toBe('—'))
+    const qRoom = parseFloat(screen.getByTestId('q-required').textContent ?? '0')
 
     act(() => {
       useUfhLoopStore.getState().addLoop({
@@ -313,15 +336,14 @@ describe('ufh cascade (D-17)', () => {
     })
 
     const qAfter = parseFloat(screen.getByTestId('q-required').textContent ?? '0')
-    // With UFH enabled, qRequired should be LESS than qRoom (UFH covers some load)
     expect(qAfter).toBeLessThan(qRoom)
   })
 
-  it('qRequired clamped to 0 when Q_тп >= Q_пом', () => {
+  it('qRequired clamped to 0 when Q_тп >= Q_пом', async () => {
     renderRow(ufhRoom)
+    await waitFor(() => expect(screen.getByTestId('q-required').textContent).not.toBe('—'))
 
     act(() => {
-      // Large area: 50m² * 215W/m² >> Q_пом (~500W) → clamp to 0
       useUfhLoopStore.getState().addLoop({
         roomId: 'room-UFH', enabled: true, activeAreaM2: 50, covering: 'tile',
         pipeId: 'pe-x-16-2', stepCm: 20, leadInM: 3
@@ -329,11 +351,10 @@ describe('ufh cascade (D-17)', () => {
     })
 
     const qAfter = screen.getByTestId('q-required').textContent
-    // Accept '0' или '0(ТП)' — последний отмечает что ТП покрыл теплопотери (UX hint).
     expect(qAfter?.startsWith('0')).toBe(true)
   })
 
-  it('qRequired increases when UFH loop is toggled off', () => {
+  it('qRequired increases when UFH loop is toggled off', async () => {
     let loopId = ''
     act(() => {
       loopId = useUfhLoopStore.getState().addLoop({
@@ -342,6 +363,7 @@ describe('ufh cascade (D-17)', () => {
       })
     })
     renderRow(ufhRoom)
+    await waitFor(() => expect(screen.getByTestId('q-required').textContent).not.toBe('—'))
     const qWithUfh = parseFloat(screen.getByTestId('q-required').textContent ?? '0')
 
     act(() => {
@@ -349,7 +371,6 @@ describe('ufh cascade (D-17)', () => {
     })
 
     const qWithoutUfh = parseFloat(screen.getByTestId('q-required').textContent ?? '0')
-    // Toggling off restores higher value
     expect(qWithoutUfh).toBeGreaterThan(qWithUfh)
   })
 })

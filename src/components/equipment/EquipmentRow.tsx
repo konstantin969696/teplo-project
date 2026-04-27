@@ -15,17 +15,17 @@
  *     комнаты могут принадлежать разным системам (D-10).
  */
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ChevronRight, Plus } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
-import type { Equipment, Room } from '../../types/project'
+import type { Enclosure, Equipment, Room } from '../../types/project'
 import { useProjectStore } from '../../store/projectStore'
 import { useEnclosureStore } from '../../store/enclosureStore'
 import { useEquipmentStore } from '../../store/equipmentStore'
 import { useCatalogStore } from '../../store/catalogStore'
 import { useSystemStore, selectOrderedSystems } from '../../store/systemStore'
 import { useUfhLoopStore, selectLoopByRoom } from '../../store/ufhLoopStore'
-import { calculateRoomTotals } from '../../engine/heatLoss'
+import { getEngineWorker } from '../../workers/useEngineWorker'
 import { calculateLMTD } from '../../engine/equipment'
 import { calculateHeatFlux } from '../../engine/ufh'
 import { deriveEquipmentQActual, formatSurplusPct } from './equipment-help'
@@ -91,11 +91,19 @@ export function EquipmentRow({ room, index }: EquipmentRowProps) {
   }, [ufhLoop, systemsMap, room.tInside, room.area])
 
   // qRoom — полные теплопотери комнаты (до распределения на ТП и радиаторы).
-  const qRoom = useMemo(() => {
-    if (tOutside === null) return null
-    const deltaT = room.tInside - tOutside
-    if (deltaT <= 0) return null
-    return calculateRoomTotals(enclosures, room, deltaT).qTotal
+  const [qRoom, setQRoom] = useState<number | null>(null)
+  useEffect(() => {
+    if (tOutside === null) { setQRoom(null); return }
+    const dt = room.tInside - tOutside
+    if (dt <= 0) { setQRoom(null); return }
+    let cancelled = false
+    const enclosureRecord: Record<string, Enclosure> = {}
+    const enclosureIds: string[] = []
+    for (const e of enclosures) { enclosureRecord[e.id] = e; enclosureIds.push(e.id) }
+    getEngineWorker()
+      .heatLossForRooms(enclosureRecord, enclosureIds, { [room.id]: room }, [room.id], tOutside)
+      .then(([res]) => { if (!cancelled && res) setQRoom(res.qTotal) })
+    return () => { cancelled = true }
   }, [enclosures, room, tOutside])
 
   const qRequired = useMemo(() => {
