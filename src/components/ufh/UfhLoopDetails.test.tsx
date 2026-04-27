@@ -1,14 +1,15 @@
 /**
- * Tests for UfhLoopDetails comfort-mode rendering.
+ * Tests for UfhLoopDetails comfort-mode rendering and mode switcher.
  * Covers: heating-default (no banner), comfort with valid target (banner + temps),
- * comfort-impossible fallback (warn banner).
+ * comfort-impossible fallback (warn banner), Phase 3 mode switcher UI.
  */
 
 import '@testing-library/jest-dom/vitest'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { UfhLoopDetails } from './UfhLoopDetails'
 import { useSystemStore } from '../../store/systemStore'
+import { useUfhLoopStore } from '../../store/ufhLoopStore'
 import { calculateRequiredCoolantMeanTemp } from '../../engine/ufh'
 import type { Room } from '../../types/project'
 import type { UfhLoop } from '../../types/hydraulics'
@@ -127,5 +128,85 @@ describe('UfhLoopDetails — comfort mode невозможный (target <= tRoo
     render(<UfhLoopDetails {...COMMON_PROPS} room={ROOM} loop={loop} />)
     // tSupplyEff not passed → isComfort=true, comfortTempsAdjusted=false → warn shown
     expect(screen.getByText(/невозможно/i)).toBeInTheDocument()
+  })
+})
+
+describe('UfhLoopDetails — Phase 3: mode switcher', () => {
+  beforeEach(() => {
+    useUfhLoopStore.setState({ loops: {}, loopsByRoom: {} })
+  })
+
+  it('Отопительный radio checked при mode=heating', () => {
+    const sysId = setupSystem()
+    render(<UfhLoopDetails {...COMMON_PROPS} room={ROOM} loop={makeLoop(sysId)} />)
+    expect(screen.getByLabelText('Отопительный режим')).toBeChecked()
+    expect(screen.getByLabelText('Комфортный режим')).not.toBeChecked()
+  })
+
+  it('Комфортный radio checked при mode=comfort', () => {
+    const sysId = setupSystem()
+    const loop = makeLoop(sysId, { mode: 'comfort', targetFloorTempC: 30 })
+    render(<UfhLoopDetails {...COMMON_PROPS} room={ROOM} loop={loop} />)
+    expect(screen.getByLabelText('Комфортный режим')).toBeChecked()
+    expect(screen.getByLabelText('Отопительный режим')).not.toBeChecked()
+  })
+
+  it('поле targetFloorTempC скрыто при mode=heating', () => {
+    const sysId = setupSystem()
+    render(<UfhLoopDetails {...COMMON_PROPS} room={ROOM} loop={makeLoop(sysId)} />)
+    expect(screen.queryByLabelText('Целевая температура пола')).not.toBeInTheDocument()
+  })
+
+  it('поле targetFloorTempC отображается при mode=comfort', () => {
+    const sysId = setupSystem()
+    const loop = makeLoop(sysId, { mode: 'comfort', targetFloorTempC: 30 })
+    render(<UfhLoopDetails {...COMMON_PROPS} room={ROOM} loop={loop} />)
+    expect(screen.getByLabelText('Целевая температура пола')).toBeInTheDocument()
+  })
+
+  it('переключение на comfort → mode="comfort", targetFloorTempC=30 в store', () => {
+    const sysId = setupSystem()
+    const loopId = useUfhLoopStore.getState().addLoop({
+      roomId: ROOM.id, systemId: sysId, enabled: true, activeAreaM2: 32,
+      covering: 'tile', pipeId: 'pe-x-16-2', stepCm: 20, leadInM: 3, mode: 'heating',
+    })
+    const loop = useUfhLoopStore.getState().loops[loopId]
+    render(<UfhLoopDetails {...COMMON_PROPS} room={ROOM} loop={loop} />)
+
+    fireEvent.click(screen.getByLabelText('Комфортный режим'))
+
+    expect(useUfhLoopStore.getState().loops[loopId].mode).toBe('comfort')
+    expect(useUfhLoopStore.getState().loops[loopId].targetFloorTempC).toBe(30)
+  })
+
+  it('переключение на heating → mode="heating", targetFloorTempC=null в store', () => {
+    const sysId = setupSystem()
+    const loopId = useUfhLoopStore.getState().addLoop({
+      roomId: ROOM.id, systemId: sysId, enabled: true, activeAreaM2: 32,
+      covering: 'tile', pipeId: 'pe-x-16-2', stepCm: 20, leadInM: 3,
+      mode: 'comfort', targetFloorTempC: 30,
+    })
+    const loop = useUfhLoopStore.getState().loops[loopId]
+    render(<UfhLoopDetails {...COMMON_PROPS} room={ROOM} loop={loop} />)
+
+    fireEvent.click(screen.getByLabelText('Отопительный режим'))
+
+    expect(useUfhLoopStore.getState().loops[loopId].mode).toBe('heating')
+    expect(useUfhLoopStore.getState().loops[loopId].targetFloorTempC).toBeNull()
+  })
+
+  it('предупреждение "цель недостижима" при targetFloorTempC ≤ tRoom', () => {
+    const sysId = setupSystem()
+    // ROOM.tInside=25, targetFloorTempC=22 → targetTooLow=true
+    const loop = makeLoop(sysId, { mode: 'comfort', targetFloorTempC: 22 })
+    render(<UfhLoopDetails {...COMMON_PROPS} room={ROOM} loop={loop} />)
+    expect(screen.getByText(/цель недостижима/i)).toBeInTheDocument()
+  })
+
+  it('подсказка "Контур не учитывается" показывается при mode=comfort', () => {
+    const sysId = setupSystem()
+    const loop = makeLoop(sysId, { mode: 'comfort', targetFloorTempC: 30 })
+    render(<UfhLoopDetails {...COMMON_PROPS} room={ROOM} loop={loop} />)
+    expect(screen.getByText(/Контур не учитывается/i)).toBeInTheDocument()
   })
 })

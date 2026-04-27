@@ -27,11 +27,12 @@ import {
 import { usePipeCatalogStore } from '../../store/pipeCatalogStore'
 import { useCoolantCatalogStore } from '../../store/coolantCatalogStore'
 import { useSystemStore } from '../../store/systemStore'
+import { useUfhLoopStore } from '../../store/ufhLoopStore'
 import { useUfhSystemTemps } from '../../hooks/useUfhSystemTemps'
 import { UfhWarnings } from './UfhWarning'
 import type { Room } from '../../types/project'
-import type { UfhLoop } from '../../types/hydraulics'
-import { formatFloorTemp, formatLoopLength } from './ufh-help'
+import type { UfhLoop, UfhMode } from '../../types/hydraulics'
+import { INPUT_CLASS, formatFloorTemp, formatLoopLength } from './ufh-help'
 
 interface UfhLoopDetailsProps {
   readonly room: Room
@@ -65,10 +66,28 @@ export function UfhLoopDetails({
   const system = useSystemStore(s => s.systems[loop.systemId])
   const coolant = useCoolantCatalogStore(s => (system ? s.coolants[system.coolantId] : undefined))
   const { tSupply: tSupplySystem, tReturn: tReturnSystem } = useUfhSystemTemps(loop.id)
+  const updateLoop = useUfhLoopStore(s => s.updateLoop)
 
   // Effective temps: from comfort inverse problem (if provided) or system defaults.
   const tSup = tSupplyEff ?? tSupplySystem
   const tRet = tReturnEff ?? tReturnSystem
+
+  const handleModeChange = (newMode: UfhMode) => {
+    if (newMode === 'heating') {
+      updateLoop(loop.id, { mode: 'heating', targetFloorTempC: null })
+    } else {
+      updateLoop(loop.id, { mode: 'comfort', targetFloorTempC: loop.targetFloorTempC ?? 30 })
+    }
+  }
+
+  const handleTargetTempCommit = (raw: string) => {
+    const v = parseFloat(raw)
+    if (!isNaN(v)) {
+      updateLoop(loop.id, { targetFloorTempC: Math.min(35, Math.max(25, v)) })
+    }
+  }
+
+  const targetTooLow = loop.mode === 'comfort' && loop.targetFloorTempC != null && loop.targetFloorTempC <= room.tInside
 
   if (!pipe || !coolant) {
     return (
@@ -106,6 +125,65 @@ export function UfhLoopDetails({
 
   return (
     <div className="p-3 bg-[var(--color-surface)] border-b border-[var(--color-border)] text-sm">
+      {/* Mode switcher */}
+      <div className="mb-3 flex flex-wrap items-start gap-x-6 gap-y-2">
+        <div className="flex items-center gap-4 text-sm">
+          <label className="flex items-center gap-1.5 cursor-pointer select-none">
+            <input
+              type="radio"
+              name={`ufh-mode-${loop.id}`}
+              value="heating"
+              checked={loop.mode !== 'comfort'}
+              onChange={() => handleModeChange('heating')}
+              aria-label="Отопительный режим"
+            />
+            <span>Отопительный</span>
+          </label>
+          <label className="flex items-center gap-1.5 cursor-pointer select-none">
+            <input
+              type="radio"
+              name={`ufh-mode-${loop.id}`}
+              value="comfort"
+              checked={loop.mode === 'comfort'}
+              onChange={() => handleModeChange('comfort')}
+              aria-label="Комфортный режим"
+            />
+            <span>Комфортный</span>
+          </label>
+        </div>
+        {loop.mode === 'comfort' && (
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2 text-sm">
+              <label
+                htmlFor={`target-temp-${loop.id}`}
+                className="text-[var(--color-text-secondary)] whitespace-nowrap text-xs"
+              >
+                t_пола цель, °C:
+              </label>
+              <input
+                id={`target-temp-${loop.id}`}
+                type="number"
+                min={25}
+                max={35}
+                step={0.5}
+                defaultValue={loop.targetFloorTempC ?? 30}
+                onBlur={e => handleTargetTempCommit(e.target.value)}
+                className={`${INPUT_CLASS} w-20 text-right font-mono`}
+                aria-label="Целевая температура пола"
+              />
+            </div>
+            {targetTooLow && (
+              <p className="text-xs text-[var(--color-warning)]">
+                Значение ≤ t_воздуха ({room.tInside}°C) — цель недостижима
+              </p>
+            )}
+            <p className="text-xs text-[var(--color-text-secondary)]">
+              Контур не учитывается в балансе отопления комнаты
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* Comfort-mode info banner */}
       {isComfort && (
         <div className="mb-3 px-3 py-2 rounded-md bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/30 text-xs text-[var(--color-text-primary)]">
