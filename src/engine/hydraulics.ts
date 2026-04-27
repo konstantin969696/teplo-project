@@ -48,32 +48,6 @@ export function selectDiameter(
   return sorted[sorted.length - 1] ?? null  // fallback: самый большой
 }
 
-/**
- * Q для сегмента — post-order: override → equipmentId → Σ children.
- * Защита от циклических зависимостей: visited set.
- */
-export function calculateSegmentQ(
-  segmentId: string,
-  segments: Readonly<Record<string, Segment>>,
-  equipmentQMap: Readonly<Record<string, number>>,
-  visited: Set<string> = new Set()
-): number {
-  if (visited.has(segmentId)) return 0  // T-04-02: защита от циклических ссылок
-  const seg = segments[segmentId]
-  if (!seg) return 0
-  if (seg.qOverride !== null && Number.isFinite(seg.qOverride)) return Math.max(0, seg.qOverride)
-  if (seg.equipmentId !== null) return equipmentQMap[seg.equipmentId] ?? 0
-  // derived: сумма детей (post-order)
-  const newVisited = new Set(visited)
-  newVisited.add(segmentId)
-  let sum = 0
-  for (const candId of Object.keys(segments)) {
-    if (segments[candId]?.parentSegmentId === segmentId) {
-      sum += calculateSegmentQ(candId, segments, equipmentQMap, newVisited)
-    }
-  }
-  return sum
-}
 
 /** Результат расчёта одного участка системы. */
 export interface SegmentCalcResult {
@@ -237,23 +211,44 @@ export function filterSegmentsBySystem(
 }
 
 /**
+ * Builds parent → children map for segments of a single system.
+ * O(n) construction; pass the result to derivedQ to avoid O(n²) per-call scans.
+ */
+export function buildChildrenMap(
+  segments: Readonly<Record<string, Segment>>,
+  systemId: string
+): Map<string, Segment[]> {
+  const map = new Map<string, Segment[]>()
+  for (const seg of Object.values(segments)) {
+    if (seg.systemId !== systemId) continue
+    const pid = seg.parentSegmentId
+    if (pid === null) continue
+    if (!map.has(pid)) map.set(pid, [])
+    map.get(pid)!.push(seg)
+  }
+  return map
+}
+
+/**
  * D-07/D-28: Q-cascade — recursively compute heat load for a segment.
- * Priority: qOverride → equipmentId → Σ children (same systemId).
+ * Priority: qOverride → equipmentId → Σ children.
  *
  * Threat mitigations:
  * - T-04.1-03-02: visited Set prevents infinite cycle loops
  * - B2 revision: depth counter → MAX_DEPTH=20 terminates pathological chains
  *
- * @param segmentId  - starting segment
- * @param segments   - all segments (cross-system children are filtered by systemId)
- * @param equipmentQ - map of equipmentId → Q in Watts
- * @param visited    - cycle guard (internal, pass new Set() externally)
- * @param depth      - current recursion depth (internal, start at 0)
+ * @param segmentId   - starting segment
+ * @param segments    - all segments (lookup by id)
+ * @param equipmentQ  - map of equipmentId → Q in Watts
+ * @param childrenMap - pre-built parent→children map from buildChildrenMap (O(1) lookup)
+ * @param visited     - cycle guard (internal, pass new Set() externally)
+ * @param depth       - current recursion depth (internal, start at 0)
  */
 export function derivedQ(
   segmentId: string,
   segments: Readonly<Record<string, Segment>>,
   equipmentQ: Readonly<Record<string, number>>,
+  childrenMap: Map<string, Segment[]>,
   visited: Set<string> = new Set(),
   depth: number = 0
 ): number {
@@ -267,12 +262,9 @@ export function derivedQ(
   if (seg.qOverride != null) return seg.qOverride
   if (seg.equipmentId) return equipmentQ[seg.equipmentId] ?? 0
 
-  // Recursively sum children of the same system
-  const children = Object.values(segments).filter(
-    s => s.parentSegmentId === segmentId && s.systemId === seg.systemId
-  )
+  const children = childrenMap.get(segmentId) ?? []
   return children.reduce(
-    (acc, child) => acc + derivedQ(child.id, segments, equipmentQ, visited, depth + 1),
+    (acc, child) => acc + derivedQ(child.id, segments, equipmentQ, childrenMap, visited, depth + 1),
     0
   )
 }

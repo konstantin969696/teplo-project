@@ -13,7 +13,8 @@ import { useShallow } from 'zustand/react/shallow'
 import {
   findMainCircuit,
   calculateSegment,
-  calculateSegmentQ,
+  derivedQ,
+  buildChildrenMap,
   recommendPump,
   filterSegmentsBySystem,
   type SegmentCalcResult,
@@ -121,8 +122,10 @@ export function useGckPath(systemId: string): GckComputationResult {
     const segments = filterSegmentsBySystem(allSegments, systemId)
     const segmentResults: Record<string, SegmentCalcResult> = {}
 
+    // Build once: O(n) parent→children map for Q derivation
+    const qChildrenMap = buildChildrenMap(segments, systemId)
     for (const [id, seg] of Object.entries(segments)) {
-      const q = calculateSegmentQ(id, segments, equipmentQMap)
+      const q = derivedQ(id, segments, equipmentQMap, qChildrenMap)
       segmentResults[id] = calculateSegment(seg, q, coolant, deltaT, pipeArr, kmsCatalog)
     }
 

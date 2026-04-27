@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { filterSegmentsBySystem, derivedQ } from '../engine/hydraulics'
+import { filterSegmentsBySystem, derivedQ, buildChildrenMap } from '../engine/hydraulics'
 import type { Segment } from '../types/hydraulics'
 
 // Helper: build minimal Segment stub
@@ -68,7 +68,8 @@ describe('derivedQ', () => {
     const segments = {
       'seg-leaf': makeSeg('seg-leaf', 'sys-1', { equipmentId: 'eq-1' })
     }
-    const q = derivedQ('seg-leaf', segments, { 'eq-1': 500 })
+    const childrenMap = buildChildrenMap(segments, 'sys-1')
+    const q = derivedQ('seg-leaf', segments, { 'eq-1': 500 }, childrenMap)
     expect(q).toBe(500)
   })
 
@@ -76,7 +77,8 @@ describe('derivedQ', () => {
     const segments = {
       'seg-leaf': makeSeg('seg-leaf', 'sys-1', { equipmentId: 'eq-1', qOverride: 300 })
     }
-    const q = derivedQ('seg-leaf', segments, { 'eq-1': 500 })
+    const childrenMap = buildChildrenMap(segments, 'sys-1')
+    const q = derivedQ('seg-leaf', segments, { 'eq-1': 500 }, childrenMap)
     expect(q).toBe(300)
   })
 
@@ -86,7 +88,8 @@ describe('derivedQ', () => {
       'child1': makeSeg('child1', 'sys-1', { parentSegmentId: 'trunk', equipmentId: 'eq-1' }),
       'child2': makeSeg('child2', 'sys-1', { parentSegmentId: 'trunk', equipmentId: 'eq-2' })
     }
-    const q = derivedQ('trunk', segments, { 'eq-1': 300, 'eq-2': 200 })
+    const childrenMap = buildChildrenMap(segments, 'sys-1')
+    const q = derivedQ('trunk', segments, { 'eq-1': 300, 'eq-2': 200 }, childrenMap)
     expect(q).toBe(500)
   })
 
@@ -100,9 +103,10 @@ describe('derivedQ', () => {
       'conn3': makeSeg('conn3', 'sys-1', { parentSegmentId: 'riser2', equipmentId: 'eq-3', kind: 'connection' })
     }
     const eqQ = { 'eq-1': 100, 'eq-2': 150, 'eq-3': 200 }
-    const trunkQ = derivedQ('trunk', segments, eqQ)
-    const riser1Q = derivedQ('riser1', segments, eqQ)
-    const riser2Q = derivedQ('riser2', segments, eqQ)
+    const childrenMap = buildChildrenMap(segments, 'sys-1')
+    const trunkQ = derivedQ('trunk', segments, eqQ, childrenMap)
+    const riser1Q = derivedQ('riser1', segments, eqQ, childrenMap)
+    const riser2Q = derivedQ('riser2', segments, eqQ, childrenMap)
     expect(trunkQ).toBe(450) // 100+150+200
     expect(riser1Q).toBe(250) // 100+150
     expect(riser2Q).toBe(200)
@@ -114,7 +118,8 @@ describe('derivedQ', () => {
       'seg-a': makeSeg('seg-a', 'sys-1', { parentSegmentId: 'seg-b' }),
       'seg-b': makeSeg('seg-b', 'sys-1', { parentSegmentId: 'seg-a' })
     }
-    const q = derivedQ('seg-a', segments, {})
+    const childrenMap = buildChildrenMap(segments, 'sys-1')
+    const q = derivedQ('seg-a', segments, {}, childrenMap)
     expect(q).toBe(0)
   })
 
@@ -124,8 +129,9 @@ describe('derivedQ', () => {
       'child-same': makeSeg('child-same', 'sys-1', { parentSegmentId: 'trunk', equipmentId: 'eq-1' }),
       'child-other': makeSeg('child-other', 'sys-2', { parentSegmentId: 'trunk', equipmentId: 'eq-2' })
     }
-    const q = derivedQ('trunk', segments, { 'eq-1': 300, 'eq-2': 500 })
-    // child-other belongs to sys-2 → should be ignored
+    const childrenMap = buildChildrenMap(segments, 'sys-1')
+    const q = derivedQ('trunk', segments, { 'eq-1': 300, 'eq-2': 500 }, childrenMap)
+    // child-other belongs to sys-2 → excluded by buildChildrenMap
     expect(q).toBe(300)
   })
 })
@@ -147,12 +153,13 @@ describe('derivedQ MAX_DEPTH guard (B2 revision)', () => {
     }
     equipmentQ['eq-1'] = 100
 
+    const childrenMap = buildChildrenMap(segments, systemId)
     // seg-0 is root: depth=0 → traverses to seg-24 at depth=24 > MAX_DEPTH=20 → truncated → returns 0
-    const total = derivedQ('seg-0', segments, equipmentQ)
+    const total = derivedQ('seg-0', segments, equipmentQ, childrenMap)
     expect(total).toBe(0)
 
     // Control: from seg-21 → seg-22 → seg-23 → seg-24 (eq-1) is within depth=3 from seg-21
-    const sub = derivedQ('seg-21', segments, equipmentQ)
+    const sub = derivedQ('seg-21', segments, equipmentQ, childrenMap)
     expect(sub).toBe(100) // seg-21 → seg-22 → seg-23 → seg-24(eq-1) within MAX_DEPTH
   })
 })

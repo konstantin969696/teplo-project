@@ -3,7 +3,6 @@ import {
   calculateFlowRate,
   calculateVelocity,
   selectDiameter,
-  calculateSegmentQ,
   findMainCircuit,
   recommendPump,
   calculateBranchImbalance,
@@ -140,46 +139,6 @@ function makeSegment(id: string, parentId: string | null, options: Partial<Segme
   }
 }
 
-describe('calculateSegmentQ', () => {
-  it('qOverride: если задан → возвращает override', () => {
-    const segments = { A: makeSegment('A', null, { qOverride: 1500 }) }
-    expect(calculateSegmentQ('A', segments, {})).toBe(1500)
-  })
-
-  it('equipmentId: берёт Q из equipmentQMap', () => {
-    const segments = { A: makeSegment('A', null, { equipmentId: 'eq1' }) }
-    expect(calculateSegmentQ('A', segments, { eq1: 2000 })).toBe(2000)
-  })
-
-  it('equipmentId не найден в map → 0', () => {
-    const segments = { A: makeSegment('A', null, { equipmentId: 'missing' }) }
-    expect(calculateSegmentQ('A', segments, {})).toBe(0)
-  })
-
-  it('derived: магистраль без ref → сумма Q детей', () => {
-    const segments = {
-      root: makeSegment('root', null),
-      child1: makeSegment('child1', 'root', { equipmentId: 'eq1' }),
-      child2: makeSegment('child2', 'root', { equipmentId: 'eq2' }),
-    }
-    const equipMap = { eq1: 1000, eq2: 800 }
-    expect(calculateSegmentQ('root', segments, equipMap)).toBe(1800)
-  })
-
-  it('не существующий segmentId → 0', () => {
-    expect(calculateSegmentQ('missing', {}, {})).toBe(0)
-  })
-
-  it('защита от циклических ссылок: seg1.parent=seg2, seg2.parent=seg1', () => {
-    // Malformed data — не должно зависнуть
-    const segments = {
-      seg1: makeSegment('seg1', 'seg2'),
-      seg2: makeSegment('seg2', 'seg1'),
-    }
-    // Должен вернуть 0 без рекурсии
-    expect(calculateSegmentQ('seg1', segments, {})).toBe(0)
-  })
-})
 
 describe('findMainCircuit', () => {
   it('возвращает [] для пустого дерева', () => {
