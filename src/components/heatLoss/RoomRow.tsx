@@ -15,6 +15,7 @@ import { calculateRoomTotals, buildRoomAuditString } from '../../engine/heatLoss
 import { cloneRoom } from '../room-actions'
 import { EnclosureSubTable } from './EnclosureSubTable'
 import { InfiltrationSection } from './InfiltrationSection'
+import { PoolSection } from './PoolSection'
 import { FormulaAudit } from './FormulaAudit'
 
 interface RoomRowProps {
@@ -286,6 +287,8 @@ export function RoomRow({ room, index, tOutside }: RoomRowProps) {
               />
 
               <InfiltrationSection room={room} deltaT={deltaT} />
+
+              <PoolSection room={room} deltaT={deltaT} />
 
               {roomTotals && (
                 <div className="ml-4 mb-2 mt-1">

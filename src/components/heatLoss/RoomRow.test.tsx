@@ -106,3 +106,44 @@ describe('RoomRow Copy button', () => {
     expect(tr.getAttribute('aria-expanded')).toBe('true')
   })
 })
+
+describe('PoolSection in RoomRow', () => {
+  it('checkbox "Бассейн" не виден пока строка не развёрнута', () => {
+    renderRow(sourceRoom)
+    expect(screen.queryByLabelText('Бассейн в помещении')).not.toBeInTheDocument()
+  })
+
+  it('разворачиваем строку → чекбокс "Бассейн в помещении" виден и не отмечен', () => {
+    renderRow(sourceRoom)
+    fireEvent.click(screen.getByRole('row'))
+    const cb = screen.getByLabelText('Бассейн в помещении')
+    expect(cb).toBeInTheDocument()
+    expect(cb).not.toBeChecked()
+  })
+
+  it('отмечаем checkbox → poolParams появляется в store с defaults', () => {
+    renderRow(sourceRoom)
+    fireEvent.click(screen.getByRole('row'))
+    fireEvent.click(screen.getByLabelText('Бассейн в помещении'))
+    const updated = useProjectStore.getState().rooms['room-src']
+    expect(updated.poolParams).toBeDefined()
+    expect(updated.poolParams?.enabled).toBe(true)
+    expect(updated.poolParams?.tWaterC).toBe(28)
+    expect(updated.poolParams?.phi).toBe(0.6)
+    expect(updated.poolParams?.mode).toBe('active')
+  })
+
+  it('снимаем checkbox → poolParams удаляется из store', () => {
+    const roomWithPool = {
+      ...sourceRoom,
+      poolParams: { enabled: true, fMirrorM2: 50, tWaterC: 28, phi: 0.6, mode: 'active' as const },
+    }
+    useProjectStore.setState({ rooms: { 'room-src': roomWithPool }, roomOrder: ['room-src'] })
+    renderRow(roomWithPool)
+    fireEvent.click(screen.getAllByRole('row')[0])
+    const cb = screen.getByLabelText('Бассейн в помещении')
+    expect(cb).toBeChecked()
+    fireEvent.click(cb)
+    expect(useProjectStore.getState().rooms['room-src'].poolParams).toBeUndefined()
+  })
+})
