@@ -41,17 +41,17 @@ export const useProjectStore = create<ProjectState>()(
 
       setActiveTab: (tab: number) => set({ activeTab: tab }),
 
-      clearLegacyV10Fields: () => set(state => {
-        // Spread-remove 7 legacy v1.0 fields (immutable pattern per coding rules).
-        // Must use replace=true (second arg) so Zustand replaces state rather than
-        // shallow-merging — otherwise removed keys persist in the store object.
-        const {
-          tSupply: _a, tReturn: _b, tSupplyUfh: _c, tReturnUfh: _d,
-          schemaType: _e, pipeMaterialId: _f, coolantId: _g,
-          ...rest
-        } = state as unknown as Record<string, unknown>
-        return rest as unknown as ProjectState
-      }, true),
+      clearLegacyV10Fields: () => set({
+        // Set each legacy v1.0 field to undefined via normal merge (no replace=true).
+        // replace=true would risk wiping store actions if the spread cast ever fails.
+        tSupply: undefined,
+        tReturn: undefined,
+        tSupplyUfh: undefined,
+        tReturnUfh: undefined,
+        schemaType: undefined,
+        pipeMaterialId: undefined,
+        coolantId: undefined,
+      } as unknown as Partial<ProjectState>),
 
       exportJSON: () => {
         const data = collectExportData()

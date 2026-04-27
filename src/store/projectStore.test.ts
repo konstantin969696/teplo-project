@@ -215,6 +215,16 @@ describe('useProjectStore', () => {
       expect(state.tSupply).toBeUndefined()
     })
 
+    it('clearLegacyV10Fields не уничтожает экшены стора (F03)', () => {
+      useProjectStore.getState().clearLegacyV10Fields()
+      const state = useProjectStore.getState()
+      expect(typeof state.addRoom).toBe('function')
+      expect(typeof state.updateRoom).toBe('function')
+      expect(typeof state.deleteRoom).toBe('function')
+      expect(typeof state.setCity).toBe('function')
+      expect(typeof state.resetProject).toBe('function')
+    })
+
     it('persist.version is 3', () => {
       // After setCity, localStorage should have version 3
       useProjectStore.getState().setCity({ name: 'X', tOutside: -10, gsop: 3000, humidityZone: 'Б' })
