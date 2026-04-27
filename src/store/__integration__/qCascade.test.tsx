@@ -7,9 +7,33 @@
  *   ufhLoopStore + projectStore → EquipmentRow useMemo → DOM cell "q-required"
  */
 
-import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen, act } from '@testing-library/react'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { render, screen, act, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
+import { calculateRoomTotals } from '../../engine/heatLoss'
+
+vi.mock('../../workers/useEngineWorker', () => ({
+  getEngineWorker: () => ({
+    heatLossForRooms: async (
+      enclosures: Record<string, never>,
+      enclosureOrder: string[],
+      rooms: Record<string, never>,
+      roomOrder: string[],
+      tOutside: number
+    ) => {
+      const enclList = enclosureOrder.map(id => enclosures[id]).filter(Boolean)
+      return roomOrder
+        .map(id => rooms[id])
+        .filter(Boolean)
+        .map(room => {
+          const re = enclList.filter(e => (e as { roomId: string }).roomId === (room as { id: string }).id)
+          const dt = (room as { tInside: number }).tInside - tOutside
+          return calculateRoomTotals(re as never, room as never, dt)
+        })
+    },
+  }),
+}))
+
 import { EquipmentRow } from '../../components/equipment/EquipmentRow'
 import { useProjectStore } from '../projectStore'
 import { useEnclosureStore } from '../enclosureStore'
@@ -93,17 +117,16 @@ describe('Q-cascade integration (D-17)', () => {
     useUfhLoopStore.setState({ loops: {}, loopsByRoom: {} })
   })
 
-  it('qRequired shows Q_пом when no UFH loop (Phase 3 behavior preserved)', () => {
+  it('qRequired shows Q_пом when no UFH loop (Phase 3 behavior preserved)', async () => {
     renderRow(room)
-    const text = screen.getByTestId('q-required').textContent
-    // No UFH → full Q_пом shown (should be > 0 with enclosures seeded)
-    expect(text).not.toBe('—')
-    const q = parseFloat(text ?? '0')
+    await waitFor(() => expect(screen.getByTestId('q-required').textContent).not.toBe('—'))
+    const q = parseFloat(screen.getByTestId('q-required').textContent ?? '0')
     expect(q).toBeGreaterThan(0)
   })
 
-  it('qRequired shows Q_пом when UFH loop disabled', () => {
+  it('qRequired shows Q_пом when UFH loop disabled', async () => {
     renderRow(room)
+    await waitFor(() => expect(screen.getByTestId('q-required').textContent).not.toBe('—'))
     const qFull = screen.getByTestId('q-required').textContent
 
     act(() => {
@@ -111,7 +134,6 @@ describe('Q-cascade integration (D-17)', () => {
         roomId: 'r1', enabled: true, activeAreaM2: 2, covering: 'tile',
         pipeId: 'pe-x-16-2', stepCm: 20, leadInM: 3
       })
-      // toggle off
       useUfhLoopStore.getState().toggleEnabled(loopId)
     })
 
@@ -119,8 +141,9 @@ describe('Q-cascade integration (D-17)', () => {
     expect(qAfterDisabled).toBe(qFull)
   })
 
-  it('qRequired subtracts Q_тп when UFH enabled — D-17 cascade', () => {
+  it('qRequired subtracts Q_тп when UFH enabled — D-17 cascade', async () => {
     renderRow(room)
+    await waitFor(() => expect(screen.getByTestId('q-required').textContent).not.toBe('—'))
     const qBefore = parseFloat(screen.getByTestId('q-required').textContent ?? '0')
 
     act(() => {
@@ -130,17 +153,15 @@ describe('Q-cascade integration (D-17)', () => {
       })
     })
 
-    // q_ufh = calculateHeatFlux(45,35,20,'tile') * 2 ≈ 213.7 * 2 ≈ 427W
-    // qRequired = max(0, qBefore - 427) < qBefore
     const qAfter = parseFloat(screen.getByTestId('q-required').textContent ?? '0')
     expect(qAfter).toBeLessThan(qBefore)
   })
 
-  it('qRequired clamped to 0 when Q_тп >= Q_пом (D-06)', () => {
+  it('qRequired clamped to 0 when Q_тп >= Q_пом (D-06)', async () => {
     renderRow(room)
+    await waitFor(() => expect(screen.getByTestId('q-required').textContent).not.toBe('—'))
 
     act(() => {
-      // 50m² * 213W/m² ≈ 10700W >> Q_пом (~650W) → clamp to 0
       useUfhLoopStore.getState().addLoop({
         roomId: 'r1', enabled: true, activeAreaM2: 50, covering: 'tile',
         pipeId: 'pe-x-16-2', stepCm: 20, leadInM: 3
@@ -150,7 +171,7 @@ describe('Q-cascade integration (D-17)', () => {
     expect(screen.getByTestId('q-required').textContent).toBe('0')
   })
 
-  it('qRequired toggles back to Q_пом when UFH loop re-disabled', () => {
+  it('qRequired toggles back to Q_пом when UFH loop re-disabled', async () => {
     let loopId = ''
     act(() => {
       loopId = useUfhLoopStore.getState().addLoop({
@@ -160,18 +181,18 @@ describe('Q-cascade integration (D-17)', () => {
     })
 
     renderRow(room)
+    await waitFor(() => expect(screen.getByTestId('q-required').textContent).not.toBe('—'))
     const qWithUfh = parseFloat(screen.getByTestId('q-required').textContent ?? '0')
 
     act(() => {
-      useUfhLoopStore.getState().toggleEnabled(loopId)  // disable
+      useUfhLoopStore.getState().toggleEnabled(loopId)
     })
 
     const qWithoutUfh = parseFloat(screen.getByTestId('q-required').textContent ?? '0')
-    // Disabling UFH restores the full Q_пом
     expect(qWithoutUfh).toBeGreaterThan(qWithUfh)
   })
 
-  it('qRequired reacts to tSupplyUfh change', () => {
+  it('qRequired reacts to tSupplyUfh change', async () => {
     act(() => {
       useUfhLoopStore.getState().addLoop({
         roomId: 'r1', enabled: true, activeAreaM2: 2, covering: 'tile',
@@ -179,9 +200,9 @@ describe('Q-cascade integration (D-17)', () => {
       })
     })
     renderRow(room)
+    await waitFor(() => expect(screen.getByTestId('q-required').textContent).not.toBe('—'))
     const qBefore = parseFloat(screen.getByTestId('q-required').textContent ?? '0')
 
-    // Increasing tSupply UFH → higher heat flux → lower qRequired
     act(() => {
       useProjectStore.setState({ tSupplyUfh: 55 })
     })
