@@ -10,7 +10,7 @@
 
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import type { ProjectState, ProjectData, CityData, CustomCityData, Room } from '../types/project'
+import type { ProjectState, ProjectData, CityData, CustomCityData, Room, PoolParams } from '../types/project'
 import { validateProjectJSON } from '../engine/validation'
 import { clampTemperature } from '../engine/climate'
 import { migrateV10toV11Json } from '../engine/migration'
@@ -120,6 +120,7 @@ export const useProjectStore = create<ProjectState>()(
             lVentilation: (r.lVentilation as number) ?? 0,
             tInside: (r.tInside as number) ?? normalized.tInside ?? 20,
             floorTempThresholdC: typeof r.floorTempThresholdC === 'number' ? r.floorTempThresholdC : null,
+          ...(r.poolParams != null ? { poolParams: r.poolParams as PoolParams } : {}),
           }
         }
         set({
