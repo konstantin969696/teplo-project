@@ -97,7 +97,12 @@ export interface EnclosureState {
   updateEnclosure: (id: string, changes: Partial<Omit<Enclosure, 'id'>>) => void
   deleteEnclosure: (id: string) => void
   deleteEnclosuresByRoom: (roomId: string) => void
-  copyFloor: (sourceFloor: number, targetFloor: number) => void
+  copyFloor: (
+    sourceFloor: number,
+    targetFloor: number,
+    rooms: Record<string, Room>,
+    addRooms: (newRooms: Record<string, Room>, newOrder: string[]) => void
+  ) => void
 }
 
 export interface FloorZoneResult {

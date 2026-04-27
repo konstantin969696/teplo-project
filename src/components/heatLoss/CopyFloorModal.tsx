@@ -8,6 +8,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { Button } from '../ui/Button'
 import { useProjectStore } from '../../store/projectStore'
 import { useEnclosureStore } from '../../store/enclosureStore'
+import type { Room } from '../../types/project'
 
 interface CopyFloorModalProps {
   open: boolean
@@ -65,7 +66,14 @@ export function CopyFloorModal({ open, onClose }: CopyFloorModalProps) {
 
   const handleConfirm = () => {
     if (!isValid || sourceFloor === null) return
-    useEnclosureStore.getState().copyFloor(sourceFloor, targetNum)
+    const rooms = useProjectStore.getState().rooms
+    const addRooms = (newRooms: Record<string, Room>, newOrder: string[]) => {
+      useProjectStore.setState(state => ({
+        rooms: { ...state.rooms, ...newRooms },
+        roomOrder: [...state.roomOrder, ...newOrder]
+      }))
+    }
+    useEnclosureStore.getState().copyFloor(sourceFloor, targetNum, rooms, addRooms)
     onClose()
   }
 

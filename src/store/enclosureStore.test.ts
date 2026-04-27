@@ -109,7 +109,14 @@ describe('useEnclosureStore', () => {
       useEnclosureStore.getState().addEnclosure(makeEnclosure('r2', { type: 'window', area: 3 }))
 
       // Copy floor 1 to floor 3
-      useEnclosureStore.getState().copyFloor(1, 3)
+      const projectStateBefore = useProjectStore.getState()
+      const addRooms = (newRooms: Record<string, unknown>, newOrder: string[]) => {
+        useProjectStore.setState(state => ({
+          rooms: { ...state.rooms, ...newRooms },
+          roomOrder: [...state.roomOrder, ...newOrder]
+        }))
+      }
+      useEnclosureStore.getState().copyFloor(1, 3, projectStateBefore.rooms, addRooms)
 
       const projectState = useProjectStore.getState()
       const newRooms = Object.values(projectState.rooms).filter(r => r.floor === 3)
@@ -128,7 +135,14 @@ describe('useEnclosureStore', () => {
       useEnclosureStore.getState().addEnclosure(makeEnclosure('r1'))
       useEnclosureStore.getState().addEnclosure(makeEnclosure('r1', { type: 'window', area: 3 }))
 
-      useEnclosureStore.getState().copyFloor(1, 2)
+      const projectStateBefore = useProjectStore.getState()
+      const addRooms = (newRooms: Record<string, unknown>, newOrder: string[]) => {
+        useProjectStore.setState(state => ({
+          rooms: { ...state.rooms, ...newRooms },
+          roomOrder: [...state.roomOrder, ...newOrder]
+        }))
+      }
+      useEnclosureStore.getState().copyFloor(1, 2, projectStateBefore.rooms, addRooms)
 
       const encState = useEnclosureStore.getState()
       // Original 2 + cloned 2 = 4
@@ -159,7 +173,14 @@ describe('useEnclosureStore', () => {
       const encBefore = { ...useEnclosureStore.getState().enclosures }
       const roomBefore = { ...useProjectStore.getState().rooms }
 
-      useEnclosureStore.getState().copyFloor(1, 2)
+      const projectStateBefore = useProjectStore.getState()
+      const addRooms = (newRooms: Record<string, unknown>, newOrder: string[]) => {
+        useProjectStore.setState(state => ({
+          rooms: { ...state.rooms, ...newRooms },
+          roomOrder: [...state.roomOrder, ...newOrder]
+        }))
+      }
+      useEnclosureStore.getState().copyFloor(1, 2, projectStateBefore.rooms, addRooms)
 
       // Source enclosure unchanged
       const originalEncId = Object.keys(encBefore)[0]
@@ -170,7 +191,14 @@ describe('useEnclosureStore', () => {
 
     it('does nothing when source floor has no rooms', () => {
       useProjectStore.setState({ rooms: {}, roomOrder: [] })
-      useEnclosureStore.getState().copyFloor(1, 2)
+      const projectStateBefore = useProjectStore.getState()
+      const addRooms = (newRooms: Record<string, unknown>, newOrder: string[]) => {
+        useProjectStore.setState(state => ({
+          rooms: { ...state.rooms, ...newRooms },
+          roomOrder: [...state.roomOrder, ...newOrder]
+        }))
+      }
+      useEnclosureStore.getState().copyFloor(1, 2, projectStateBefore.rooms, addRooms)
       expect(useProjectStore.getState().roomOrder).toHaveLength(0)
       expect(useEnclosureStore.getState().enclosureOrder).toHaveLength(0)
     })

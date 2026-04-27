@@ -14,11 +14,8 @@ import type { ProjectState, ProjectData, CityData, CustomCityData, Room } from '
 import { validateProjectJSON } from '../engine/validation'
 import { clampTemperature } from '../engine/climate'
 import { migrateV10toV11Json } from '../engine/migration'
-import { useSystemStore } from './systemStore'
-import { useSegmentStore } from './segmentStore'
-import { useEquipmentStore } from './equipmentStore'
-import { useUfhLoopStore } from './ufhLoopStore'
-import { safeStorage, shapeMerge } from './safeStorage'
+import { safeStorage } from './safeStorage'
+import { applyImportedStores } from '../services/importService'
 import { uuid } from './uuid'
 import { toast } from 'sonner'
 
@@ -134,72 +131,7 @@ export const useProjectStore = create<ProjectState>()(
         })
 
         // Apply per-system data into dedicated stores (Phase 04.1 multi-store split)
-        const n = normalized as Record<string, unknown>
-
-        // Guard: each store field must be a plain object, not an array or primitive.
-        // Protects against crafted JSON where systems/segments is [] or a string.
-        function isPlainObject(v: unknown): v is Record<string, unknown> {
-          return typeof v === 'object' && v !== null && !Array.isArray(v)
-        }
-
-        if (n.systems !== undefined) {
-          if (!isPlainObject(n.systems)) {
-            toast.error('Ошибка импорта: некорректный формат систем')
-            return
-          }
-          const validated = shapeMerge(
-            { systems: n.systems, systemOrder: n.systemOrder },
-            { systems: {} as Record<string, never>, systemOrder: [] as string[] },
-            { systems: 'record', systemOrder: 'array-of-string' }
-          )
-          useSystemStore.setState({ systems: validated.systems, systemOrder: validated.systemOrder })
-        }
-
-        if (n.segments !== undefined) {
-          if (!isPlainObject(n.segments)) {
-            toast.error('Ошибка импорта: некорректный формат участков')
-            return
-          }
-          const validated = shapeMerge(
-            { segments: n.segments, segmentOrder: n.segmentOrder },
-            { segments: {} as Record<string, never>, segmentOrder: [] as string[] },
-            { segments: 'record', segmentOrder: 'array-of-string' }
-          )
-          useSegmentStore.setState({ segments: validated.segments, segmentOrder: validated.segmentOrder })
-        }
-
-        if (n.equipment !== undefined) {
-          if (!isPlainObject(n.equipment)) {
-            toast.error('Ошибка импорта: некорректный формат оборудования')
-            return
-          }
-          const validated = shapeMerge(
-            { equipment: n.equipment, equipmentOrder: n.equipmentOrder },
-            { equipment: {} as Record<string, never>, equipmentOrder: [] as string[] },
-            { equipment: 'record', equipmentOrder: 'array-of-string' }
-          )
-          useEquipmentStore.setState({ equipment: validated.equipment, equipmentOrder: validated.equipmentOrder })
-        }
-
-        if (n.ufhLoops !== undefined) {
-          if (!isPlainObject(n.ufhLoops)) {
-            toast.error('Ошибка импорта: некорректный формат тёплого пола')
-            return
-          }
-          // ufhLoopStore uses `loops` keyed by id + `loopsByRoom` (roomId → loopId).
-          // Rebuild loopsByRoom from loops entries.
-          const loopsRaw = n.ufhLoops as Record<string, { id?: string; roomId?: string }>
-          const loopsByRoom: Record<string, string> = {}
-          for (const [id, loop] of Object.entries(loopsRaw)) {
-            if (loop && typeof loop === 'object' && typeof loop.roomId === 'string') {
-              loopsByRoom[loop.roomId] = id
-            }
-          }
-          useUfhLoopStore.setState({
-            loops: loopsRaw,
-            loopsByRoom
-          } as unknown as Parameters<typeof useUfhLoopStore.setState>[0])
-        }
+        applyImportedStores(normalized as Record<string, unknown>)
 
         toast.success('Проект загружен')
       },

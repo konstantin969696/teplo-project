@@ -9,7 +9,6 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import type { Enclosure, EnclosureState, Room } from '../types/project'
 import { safeStorage } from './safeStorage'
 import { uuid } from './uuid'
-import { useProjectStore } from './projectStore'
 import { toast } from 'sonner'
 
 const defaultEnclosureData = {
@@ -82,9 +81,13 @@ export const useEnclosureStore = create<EnclosureState>()(
         }
       }),
 
-      copyFloor: (sourceFloor: number, targetFloor: number) => {
-        const projectState = useProjectStore.getState()
-        const sourceRooms = Object.values(projectState.rooms).filter(
+      copyFloor: (
+        sourceFloor: number,
+        targetFloor: number,
+        rooms: Record<string, Room>,
+        addRooms: (newRooms: Record<string, Room>, newOrder: string[]) => void
+      ) => {
+        const sourceRooms = Object.values(rooms).filter(
           (r: Room) => r.floor === sourceFloor
         )
         if (sourceRooms.length === 0) return
@@ -100,11 +103,8 @@ export const useEnclosureStore = create<EnclosureState>()(
           newRoomOrder.push(newId)
         }
 
-        // Add cloned rooms to projectStore
-        useProjectStore.setState(state => ({
-          rooms: { ...state.rooms, ...newRooms },
-          roomOrder: [...state.roomOrder, ...newRoomOrder]
-        }))
+        // Add cloned rooms via callback (decoupled from projectStore)
+        addRooms(newRooms, newRoomOrder)
 
         // Clone enclosures for the copied rooms. Build old→new enclosure id map
         // per room first, so we can remap parentEnclosureId references to the
