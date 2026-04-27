@@ -248,6 +248,36 @@ export function RoomRow({ room, index, tOutside }: RoomRowProps) {
         <tr>
           <td colSpan={11} className="p-0">
             <div role="region" aria-label={`Ограждения для ${room.name || 'помещение'}`}>
+              {/* Per-room floor temp threshold override */}
+              <div className="px-4 py-2 border-b border-[var(--color-border)] flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                <label
+                  htmlFor={`floor-thresh-${room.id}`}
+                  className="text-[var(--color-text-secondary)] whitespace-nowrap"
+                >
+                  Порог t_пола, °C:
+                </label>
+                <input
+                  id={`floor-thresh-${room.id}`}
+                  type="number"
+                  min={25}
+                  max={35}
+                  step={0.5}
+                  defaultValue={room.floorTempThresholdC ?? ''}
+                  key={`${room.id}-floor-thresh`}
+                  placeholder="29 (авто)"
+                  onBlur={e => {
+                    const v = parseFloat(e.target.value)
+                    handleUpdate({ floorTempThresholdC: isNaN(v) ? null : Math.min(35, Math.max(25, v)) })
+                  }}
+                  onClick={e => e.stopPropagation()}
+                  className={`${inputClass} w-24 font-mono text-right`}
+                  aria-label="Порог температуры пола"
+                />
+                <span className="text-xs text-[var(--color-text-secondary)]">
+                  СП 60: жилые 29°C, ванные/мокрые 33°C — переопределить для бассейна и т.п.
+                </span>
+              </div>
+
               <EnclosureSubTable
                 roomId={room.id}
                 deltaT={deltaT}

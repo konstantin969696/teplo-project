@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { useProjectStore, selectDeltaT } from './projectStore'
 
 // Reset store before each test
@@ -215,14 +215,42 @@ describe('useProjectStore', () => {
       expect(state.tSupply).toBeUndefined()
     })
 
-    it('persist.version is 2', () => {
-      // After addRoom, localStorage should have version 2
+    it('persist.version is 3', () => {
+      // After setCity, localStorage should have version 3
       useProjectStore.getState().setCity({ name: 'X', tOutside: -10, gsop: 3000, humidityZone: 'Б' })
       const stored = localStorage.getItem('teplo-project')
       expect(stored).not.toBeNull()
       const parsed = JSON.parse(stored!)
-      expect(parsed.version).toBe(2)
+      expect(parsed.version).toBe(3)
     })
+  })
+})
+
+describe('persist migration v2 → v3 (floorTempThresholdC)', () => {
+  const KEY = 'teplo-project'
+
+  it('rooms без floorTempThresholdC получают null после миграции', async () => {
+    localStorage.setItem(KEY, JSON.stringify({
+      state: {
+        city: null, tInside: 20, customCities: [], schemaVersion: '1.1',
+        rooms: {
+          'r1': {
+            id: 'r1', number: 101, name: 'Гостиная', floor: 1, area: 20, height: 2.7,
+            isCorner: false, infiltrationMethod: 'rate', nInfiltration: null,
+            gapArea: null, windSpeed: null, lVentilation: 0, tInside: 20
+            // нет floorTempThresholdC
+          }
+        },
+        roomOrder: ['r1']
+      },
+      version: 2
+    }))
+
+    vi.resetModules()
+    const { useProjectStore: freshStore } = await import('./projectStore')
+    const room = freshStore.getState().rooms['r1']
+    expect(room).toBeDefined()
+    expect(room.floorTempThresholdC).toBeNull()
   })
 })
 

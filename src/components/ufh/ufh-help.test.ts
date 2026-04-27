@@ -8,10 +8,18 @@ import {
   COVERING_LABELS,
   isBathroomRoom,
   floorTempThresholdC,
+  resolveFloorThreshold,
   formatFloorTemp,
   formatQPerM2,
   formatLoopLength,
 } from './ufh-help'
+import type { Room } from '../../types/project'
+
+const baseRoom: Omit<Room, 'id' | 'name' | 'tInside'> = {
+  number: 1, floor: 1, area: 20, height: 2.7,
+  isCorner: false, infiltrationMethod: 'rate',
+  nInfiltration: null, gapArea: null, windSpeed: null, lVentilation: 0,
+}
 
 describe('COVERING_LABELS', () => {
   it('Test 1a: содержит ключ tile', () => {
@@ -94,5 +102,27 @@ describe('format helpers', () => {
 
   it('formatLoopLength: 47.0 → "47.0"', () => {
     expect(formatLoopLength(47.0)).toBe('47.0')
+  })
+})
+
+describe('resolveFloorThreshold', () => {
+  it('null → стандарт по имени: жилая 29°C', () => {
+    const room: Room = { ...baseRoom, id: 'r1', name: 'Гостиная', tInside: 20, floorTempThresholdC: null }
+    expect(resolveFloorThreshold(room)).toBe(29)
+  })
+
+  it('undefined (нет поля) → стандарт по имени: ванная 33°C', () => {
+    const room: Room = { ...baseRoom, id: 'r1', name: 'Ванная', tInside: 20 }
+    expect(resolveFloorThreshold(room)).toBe(33)
+  })
+
+  it('явное значение 31 → 31°C (переопределяет стандарт)', () => {
+    const room: Room = { ...baseRoom, id: 'r1', name: 'Бассейн', tInside: 28, floorTempThresholdC: 31 }
+    expect(resolveFloorThreshold(room)).toBe(31)
+  })
+
+  it('явное значение 31 для жилой → 31°C (переопределяет 29)', () => {
+    const room: Room = { ...baseRoom, id: 'r1', name: 'Гостиная', tInside: 20, floorTempThresholdC: 31 }
+    expect(resolveFloorThreshold(room)).toBe(31)
   })
 })

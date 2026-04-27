@@ -226,4 +226,26 @@ describe('UfhLoopRow', () => {
     // tS=45, tR=35, tRoom=20, tile → q≈215, tFloor≈40 > 33 → warning shown
     expect(screen.getByLabelText('Предупреждение')).toBeInTheDocument()
   })
+
+  it('кастомный порог floorTempThresholdC=31: warn-icon при tFloor>31', () => {
+    // tS=45, tR=35, tRoom=20, tile → tFloor≈40 > 31 → warn
+    const poolRoom: Room = { ...ROOM, id: 'room-pool', name: 'Бассейн', tInside: 28, area: 50, floorTempThresholdC: 31 }
+    useUfhLoopStore.getState().addLoop({
+      roomId: 'room-pool',
+      enabled: true,
+      activeAreaM2: 40,
+      covering: 'tile',
+      pipeId: 'pe-x-16-2',
+      stepCm: 20,
+      leadInM: 3,
+    })
+    render(
+      <table>
+        <tbody>
+          <UfhLoopRow room={poolRoom} index={0} />
+        </tbody>
+      </table>
+    )
+    expect(screen.getByLabelText('Предупреждение')).toBeInTheDocument()
+  })
 })
