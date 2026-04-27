@@ -44,10 +44,43 @@ useEffect(() => {
 
 ### Файлы для миграции (атомарными коммитами)
 
-- [ ] `src/components/hydraulics/useGckPath.ts` -- импортирует `calculateRoomTotals` (line 23) + 4 функции из `engine/hydraulics`. Самый сложный: задействуется `hydraulicsCalc` worker. Возможно потребуется адаптировать API worker.
-- [ ] `src/components/equipment/EquipmentResultsTable.tsx` -- импорт `calculateRoomTotals` (line 21).
-- [ ] `src/components/equipment/EquipmentRow.tsx` -- импорт `calculateRoomTotals` (line 28).
-- [ ] `src/components/ufh/UfhLoopRow.tsx` -- импорт `calculateRoomTotals` (line 34).
+- [ ] `src/components/hydraulics/useGckPath.ts` — **архитектурный конфликт, требует решения (см. ниже)**.
+- [x] `src/components/equipment/EquipmentResultsTable.tsx` — коммит `e529ff6`.
+- [x] `src/components/equipment/EquipmentRow.tsx` — коммит `5f96439`.
+- [x] `src/components/ufh/UfhLoopRow.tsx` — коммит `17737d2`.
+
+### useGckPath — архитектурный конфликт (остановка для решения)
+
+`calculateRoomTotals` в `useGckPath` — не отображение, а **промежуточное вычисление**:
+
+```
+calculateRoomTotals(per room) → qRoom → target → deriveEquipmentQActual → equipmentQMap
+equipmentQMap + segments → hydraulicsCalc (worker) → segmentResults
+segmentResults → findMainCircuit → GCK path
+```
+
+Worker имеет:
+- `heatLossForRooms` — Q_пом для комнат (без учёта equipment каталога / LMTD)
+- `hydraulicsCalc(segments, equipmentQ, ...)` — принимает `equipmentQ` как готовый `Record<string, number>`
+
+`findMainCircuit` и `recommendPump` в worker **не exposed** — остаются в main thread.
+
+**Варианты:**
+
+**A. Двухшаговый async (без изменений worker API):**
+```
+useEffect step 1: heatLossForRooms → qPerRoom[]
+useEffect step 2 (deps: qPerRoom): compute equipmentQMap sync + hydraulicsCalc → results
+```
+Проблема: двойная async-цепочка, loading state усложняется, `findMainCircuit` всё равно в main thread.
+
+**B. Добавить `fullHydraulicsCalc` в worker:**
+Exposed функция принимает всё что нужно для equipmentQMap (enclosures, rooms, equipment, models) + гидравлику. Вычисляет обе части и возвращает полный результат. Требует расширения worker API. `findMainCircuit` и `recommendPump` тоже переехать в worker.
+
+**C. Оставить useGckPath как есть (sync useMemo):**
+Гидравлика — менее критична по нагрузке (считается на system-level, а не per-room). Приоритет worker: теплопотери (N комнат × per render). 3 файла уже мигрированы — основная нагрузка снята.
+
+**Рекомендую C сейчас, B — в отдельной задаче (Phase 6 worker).**
 
 ### Что уже сделано
 
@@ -57,10 +90,10 @@ useEffect(() => {
 
 См. полный отчёт `ANALYSIS.md` (в корне `Teploroject/`). Статус по 7 пунктам:
 
-- [x] #1 -- Engine Worker: exposed (частично -- только SummaryTab caller мигрирован, остальное в этом TECH-DEBT.md)
-- [x] #2 -- O(n²) в derivedQ: устранено, добавлен buildChildrenMap
+- [x] #1 -- Engine Worker: 4 из 5 callers мигрированы (useGckPath — архитектурный конфликт, см. выше)
+- [x] #2 -- O(n²) в derivedQ: устранено, добавлен buildChildrenMap (коммит `2cd089c`)
 - [x] #3 -- Cross-store coupling: importService.ts создан, copyFloor через callback
-- [x] #4 -- shape-validation в importJSON
-- [ ] #5 -- VITE_APP_URL fallback (teplo-landing): не сделано
-- [ ] #6 -- SEO лендинга: не сделано
-- [ ] #7 -- Синхронизация версий: не сделано (см. выше)
+- [x] #4 -- shape-validation в importJSON (коммит `39a33f7`)
+- [x] #5 -- VITE_APP_URL fallback (teplo-landing): сделано (коммит `2298615`)
+- [x] #6 -- SEO лендинга: сделано (коммит `c11614f`)
+- [x] #7 -- Синхронизация версий: lucide-react ок; TS/Vite задокументированы в teplo-landing/TECH-DEBT.md (коммит `823772e`)
