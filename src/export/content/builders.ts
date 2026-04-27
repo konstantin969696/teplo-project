@@ -15,6 +15,7 @@ import { findFormat } from '../sheet/formats'
 import { calculateRoomTotals } from '../../engine/heatLoss'
 import type { DocumentModel, ContentBlock, Stamp, StampMode } from '../types'
 import type { Room } from '../../types/project'
+import { SPEC_COLUMNS } from '../gost/specColumns'
 
 const SCHEMA_LABEL: Record<string, string> = {
   'two-pipe-dead-end': 'Двухтруб. тупиковая',
@@ -250,12 +251,45 @@ export function buildSummaryDocument(): DocumentModel {
   }
 }
 
+// ─── 6. Спецификация оборудования ГОСТ 21.110-2013 ───
+export function buildSpecDocument(): DocumentModel {
+  const ctx = readBuilderContext('Спецификация оборудования, изделий и материалов', 'ОВ.005')
+  const p = useProjectStore.getState()
+  const eq = useEquipmentStore.getState()
+
+  const items = eq.equipmentOrder
+    .map(id => eq.equipment[id])
+    .filter((e): e is NonNullable<typeof e> => e != null)
+
+  const rows: (string | number)[][] = items.length === 0
+    ? [['—', 'Спецификация не содержит позиций', '', '', '']]
+    : items.map((e, idx) => [
+        idx + 1,
+        p.rooms[e.roomId]?.name ?? '—',
+        e.catalogModelId ?? e.kind,
+        1,
+        ''
+      ])
+
+  const content: ContentBlock[] = [
+    { kind: 'heading', level: 1, text: 'Спецификация оборудования, изделий и материалов' },
+    projectHeader(),
+    {
+      kind: 'table',
+      columns: SPEC_COLUMNS.map(c => ({ ...c })),
+      rows,
+    }
+  ]
+  return makeModel('spec', 'Спецификация_оборудования', ctx, content)
+}
+
 export const DOCUMENT_BUILDERS = {
   'heat-loss': buildHeatLossDocument,
   equipment: buildEquipmentDocument,
   hydraulics: buildHydraulicsDocument,
   ufh: buildUfhDocument,
-  summary: buildSummaryDocument
+  summary: buildSummaryDocument,
+  spec: buildSpecDocument,
 } as const
 
 export type DocumentBuilderId = keyof typeof DOCUMENT_BUILDERS
