@@ -4,6 +4,7 @@
  */
 
 import type { Enclosure, EnclosureType, FloorZoneResult, Orientation, Room, RoomHeatLossResult } from '../types/project'
+import { calculatePoolEvaporationHeat } from './poolEvaporation'
 
 /** Orientation addition factors per SP 50.13330.2012. */
 export const ORIENTATION_ADDITIONS: Record<Orientation, number> = {
@@ -186,7 +187,8 @@ export function calculateRoomTotals(
     : calculateQInfiltrationByRate(room.area, room.height, room.nInfiltration ?? 0, deltaT)
 
   const qVentilation = calculateQVentilation(room.lVentilation, deltaT)
-  const qTotal = qBasic + qInfiltration + qVentilation
+  const qEvaporation = calculatePoolEvaporationHeat(room.poolParams, room.tInside)
+  const qTotal = qBasic + qInfiltration + qVentilation + qEvaporation
   const qSpecific = room.area > 0 ? qTotal / room.area : 0
 
   return {
@@ -197,6 +199,7 @@ export function calculateRoomTotals(
     qBasic,
     qInfiltration,
     qVentilation,
+    qEvaporation,
     qTotal,
     qSpecific,
   }
@@ -245,11 +248,12 @@ export function buildRoomAuditString(
   qBasic: number,
   qInf: number,
   qVent: number,
+  qEvap: number,
   qTotal: number
 ): string {
   return [
-    'Q_итого = Q_осн + Q_инф + Q_вент',
-    `  = ${qBasic.toFixed(1)} + ${qInf.toFixed(1)} + ${qVent.toFixed(1)}`,
+    'Q_итого = Q_осн + Q_инф + Q_вент + Q_исп',
+    `  = ${qBasic.toFixed(1)} + ${qInf.toFixed(1)} + ${qVent.toFixed(1)} + ${qEvap.toFixed(1)}`,
     `  = ${qTotal.toFixed(1)} Вт`,
   ].join('\n')
 }

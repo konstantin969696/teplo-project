@@ -27,6 +27,17 @@ export interface Room {
   readonly tInside: number            // °C расчётная температура помещения, default from global
   /** Ручной порог t_пола (СП 60). null → авто: 29°C жилые / 33°C ванные. */
   readonly floorTempThresholdC?: number | null
+  readonly poolParams?: PoolParams   // undefined = нет бассейна
+}
+
+export type PoolMode = 'active' | 'idle' | 'covered'
+
+export interface PoolParams {
+  readonly enabled: boolean      // true = комната содержит бассейн
+  readonly fMirrorM2: number     // F_зерк, м²
+  readonly tWaterC: number       // t_воды, °C
+  readonly phi: number           // φ, доли (0.60 = 60 %)
+  readonly mode: PoolMode        // режим эксплуатации → β
 }
 
 export type EnclosureType =
@@ -123,6 +134,7 @@ export interface RoomHeatLossResult {
   readonly qBasic: number       // Q_осн total for room
   readonly qInfiltration: number // Q_инф
   readonly qVentilation: number  // Q_вент
+  readonly qEvaporation: number  // Q_исп
   readonly qTotal: number        // Q_итого
   readonly qSpecific: number     // Вт/м2
 }

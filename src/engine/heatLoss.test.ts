@@ -207,7 +207,8 @@ describe('calculateRoomTotals', () => {
     const result = calculateRoomTotals(enclosures, room, 55)
     expect(result.roomId).toBe('r1')
     expect(result.qBasic).toBeGreaterThan(0)
-    expect(result.qTotal).toBe(result.qBasic + result.qInfiltration + result.qVentilation)
+    expect(result.qEvaporation).toBe(0)
+    expect(result.qTotal).toBe(result.qBasic + result.qInfiltration + result.qVentilation + result.qEvaporation)
     expect(result.qSpecific).toBeCloseTo(result.qTotal / 20, 1)
   })
 
@@ -280,7 +281,7 @@ describe('buildFloorZoneAuditString', () => {
 
 describe('buildRoomAuditString', () => {
   it('produces string with totals breakdown', () => {
-    const result = buildRoomAuditString(500, 100, 200, 800)
+    const result = buildRoomAuditString(500, 100, 200, 0, 800)
     expect(result).toContain('500')
     expect(result).toContain('100')
     expect(result).toContain('200')

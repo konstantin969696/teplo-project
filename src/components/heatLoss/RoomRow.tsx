@@ -292,7 +292,7 @@ export function RoomRow({ room, index, tOutside }: RoomRowProps) {
                   <FormulaAudit
                     auditString={buildRoomAuditString(
                       roomTotals.qBasic, roomTotals.qInfiltration,
-                      roomTotals.qVentilation, roomTotals.qTotal
+                      roomTotals.qVentilation, roomTotals.qEvaporation, roomTotals.qTotal
                     )}
                   />
                 </div>

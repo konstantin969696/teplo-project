@@ -126,7 +126,7 @@ export function ResultsTable({ rooms, roomOrder, tOutside }: ResultsTableProps) 
                         <FormulaAudit
                           auditString={buildRoomAuditString(
                             result.qBasic, result.qInfiltration,
-                            result.qVentilation, result.qTotal
+                            result.qVentilation, result.qEvaporation, result.qTotal
                           )}
                         />
                       )}
