@@ -117,6 +117,30 @@ export function calculateLoopHydraulics(
 }
 
 /**
+ * UFH-08: Обратная задача — подбор средней температуры теплоносителя
+ * по заданной температуре поверхности пола.
+ *
+ * Из UFH-04: t_пол = t_возд + q / α_tot  →  q = α_tot·(t_пол − t_возд)
+ * Из UFH-03: q = 8.92·(t_ср − t_возд)^1.1·k_покр
+ * Решаем обратно: t_ср = t_возд + (q / (8.92·k))^(1/1.1)
+ *
+ * @returns среднюю t_ср теплоносителя (°C), или null если цель ≤ t_возд.
+ */
+export function calculateRequiredCoolantMeanTemp(
+  targetFloorTempC: number,
+  tRoom: number,
+  covering: FloorCovering
+): number | null {
+  const dtFloor = targetFloorTempC - tRoom
+  if (dtFloor <= 0) return null
+  const q = ALPHA_FLOOR_TOTAL * dtFloor
+  const k = COVERING_COEFF[covering]
+  if (k <= 0) return null
+  const dtCoolant = Math.pow(q / (8.92 * k), 1 / 1.1)
+  return tRoom + dtCoolant
+}
+
+/**
  * Строка аудита для расчёта UFН-контура.
  */
 export function buildUfhAuditString(

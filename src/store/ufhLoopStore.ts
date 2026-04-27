@@ -19,12 +19,17 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { safeStorage, shapeMerge } from './safeStorage'
 import { uuid } from './uuid'
-import type { UfhLoop } from '../types/hydraulics'
+import type { UfhLoop, UfhMode } from '../types/hydraulics'
+
+type AddLoopInput = Omit<UfhLoop, 'id' | 'mode' | 'targetFloorTempC'> & {
+  mode?: UfhMode
+  targetFloorTempC?: number | null
+}
 
 export interface UfhLoopState {
   readonly loops: Record<string, UfhLoop>       // keyed by loop.id
   readonly loopsByRoom: Record<string, string>  // roomId → loopId (один loop на комнату)
-  addLoop: (loop: Omit<UfhLoop, 'id'>) => string
+  addLoop: (loop: AddLoopInput) => string
   updateLoop: (id: string, changes: Partial<Omit<UfhLoop, 'id' | 'roomId'>>) => void
   deleteLoop: (id: string) => void
   deleteLoopByRoom: (roomId: string) => void
@@ -45,11 +50,16 @@ export const useUfhLoopStore = create<UfhLoopState>()(
     (set) => ({
       ...defaultUfhLoopData,
 
-      addLoop: (loop: Omit<UfhLoop, 'id'>): string => {
+      addLoop: (loop: AddLoopInput): string => {
+        const fullLoop: Omit<UfhLoop, 'id'> = {
+          mode: 'heating',
+          targetFloorTempC: null,
+          ...loop,
+        }
         // If room already has a loop — update it instead of creating duplicate
-        const existingId = useUfhLoopStore.getState().loopsByRoom[loop.roomId]
+        const existingId = useUfhLoopStore.getState().loopsByRoom[fullLoop.roomId]
         if (existingId) {
-          const { id: _id, roomId: _roomId, ...changes } = { id: existingId, ...loop }
+          const { id: _id, roomId: _roomId, ...changes } = { id: existingId, ...fullLoop }
           set(state => ({
             loops: {
               ...state.loops,
@@ -60,8 +70,8 @@ export const useUfhLoopStore = create<UfhLoopState>()(
         }
         const id = uuid()
         set(state => ({
-          loops: { ...state.loops, [id]: { ...loop, id } as UfhLoop },
-          loopsByRoom: { ...state.loopsByRoom, [loop.roomId]: id }
+          loops: { ...state.loops, [id]: { ...fullLoop, id } as UfhLoop },
+          loopsByRoom: { ...state.loopsByRoom, [fullLoop.roomId]: id }
         }))
         return id
       },
@@ -134,21 +144,29 @@ export const useUfhLoopStore = create<UfhLoopState>()(
     }),
     {
       name: 'teplo-ufh-loops',
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => safeStorage),
       migrate: (persistedState, version) => {
+        const s = persistedState as { loops?: Record<string, Record<string, unknown>> } | null
         if (version < 2) {
           // Fill placeholder systemId for existing loops.
           // runV11Migration (App.tsx) will set correct systemId via bulkSetSystemId.
-          const s = persistedState as { loops?: Record<string, Record<string, unknown>> } | null
           if (s?.loops) {
             for (const loop of Object.values(s.loops)) {
               if (loop.systemId === undefined) loop.systemId = ''
             }
           }
-          return s
         }
-        return persistedState
+        if (version < 3) {
+          // Backfill comfort-ufh fields introduced in Phase comfort-ufh.
+          if (s?.loops) {
+            for (const loop of Object.values(s.loops)) {
+              if (loop.mode === undefined) loop.mode = 'heating'
+              if (!('targetFloorTempC' in loop)) loop.targetFloorTempC = null
+            }
+          }
+        }
+        return s
       },
       partialize: (state) => ({
         loops: state.loops,

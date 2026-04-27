@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { useUfhLoopStore, selectLoopByRoom } from './ufhLoopStore'
 import type { UfhLoop } from '../types/hydraulics'
 
@@ -140,5 +140,65 @@ describe('selectLoopByRoom', () => {
     const state = useUfhLoopStore.getState()
     const loop = selectLoopByRoom('room-nonexistent')(state)
     expect(loop).toBeNull()
+  })
+})
+
+describe('ufhLoopStore — comfort-ufh поля', () => {
+  beforeEach(() => {
+    useUfhLoopStore.setState({ loops: {}, loopsByRoom: {} })
+  })
+
+  it('addLoop проставляет дефолты mode=heating, targetFloorTempC=null', () => {
+    const id = useUfhLoopStore.getState().addLoop(makeLoop())
+    const loop = useUfhLoopStore.getState().loops[id]
+    expect(loop.mode).toBe('heating')
+    expect(loop.targetFloorTempC).toBeNull()
+  })
+
+  it('addLoop сохраняет явно заданный mode=comfort', () => {
+    const id = useUfhLoopStore.getState().addLoop(makeLoop({ mode: 'comfort', targetFloorTempC: 30 }))
+    const loop = useUfhLoopStore.getState().loops[id]
+    expect(loop.mode).toBe('comfort')
+    expect(loop.targetFloorTempC).toBe(30)
+  })
+})
+
+describe('ufhLoopStore — persist migration v2 → v3', () => {
+  const PERSIST_KEY = 'teplo-ufh-loops'
+
+  afterEach(() => {
+    localStorage.clear()
+  })
+
+  it('loops без mode/targetFloorTempC получают дефолты после миграции', async () => {
+    // State persisted in version 2 format (no mode, no targetFloorTempC)
+    localStorage.setItem(PERSIST_KEY, JSON.stringify({
+      state: {
+        loops: {
+          'loop-old': {
+            id: 'loop-old',
+            roomId: 'room-1',
+            systemId: 'sys-1',
+            enabled: true,
+            activeAreaM2: 12,
+            covering: 'tile',
+            pipeId: 'pe-x-16-2',
+            stepCm: 20,
+            leadInM: 3,
+            // no mode, no targetFloorTempC
+          }
+        },
+        loopsByRoom: { 'room-1': 'loop-old' }
+      },
+      version: 2
+    }))
+
+    vi.resetModules()
+    const { useUfhLoopStore: freshStore } = await import('./ufhLoopStore')
+    const loop = freshStore.getState().loops['loop-old']
+
+    expect(loop).toBeDefined()
+    expect(loop.mode).toBe('heating')
+    expect(loop.targetFloorTempC).toBeNull()
   })
 })

@@ -61,6 +61,8 @@ export interface SegmentNode {
 
 export type FloorCovering = 'tile' | 'laminate' | 'parquet' | 'linoleum'
 
+export type UfhMode = 'heating' | 'comfort'
+
 export interface UfhLoop {
   readonly id: string
   readonly roomId: string
@@ -72,6 +74,9 @@ export interface UfhLoop {
   readonly leadInM: number            // подводка, дефолт 3
   // Phase 04.1 fields
   readonly systemId: string           // D-11: обязательная привязка к системе
+  // Phase comfort-ufh fields
+  readonly mode: UfhMode              // 'heating' (default) or 'comfort'
+  readonly targetFloorTempC: number | null  // обратная задача: целевая t_пола, °C
 }
 
 export interface PumpRecommendation {

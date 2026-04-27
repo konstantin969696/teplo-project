@@ -7,6 +7,7 @@ import {
   calculateLoopLength,
   calculateLoopCount,
   calculateLoopHydraulics,
+  calculateRequiredCoolantMeanTemp,
   buildUfhAuditString,
 } from './ufh'
 import type { CoolantSpec, PipeSpec } from '../types/hydraulics'
@@ -184,5 +185,57 @@ describe('buildUfhAuditString', () => {
     expect(audit).toContain('t_пол_ср')
     expect(audit).toContain('L_контура')
     expect(audit).toContain('N_контуров')
+  })
+})
+
+describe('calculateRequiredCoolantMeanTemp (UFH-08)', () => {
+  it('возвращает null когда targetFloorTempC <= tRoom', () => {
+    expect(calculateRequiredCoolantMeanTemp(20, 20, 'tile')).toBeNull()
+    expect(calculateRequiredCoolantMeanTemp(15, 20, 'tile')).toBeNull()
+  })
+
+  it('tile: t_пол=30, tRoom=20 → t_ср ≈ 29.65°C', () => {
+    // q = 10.8 * 10 = 108 Вт/м²; dtCoolant = (108/8.92)^(1/1.1) ≈ 9.65
+    const result = calculateRequiredCoolantMeanTemp(30, 20, 'tile')
+    expect(result).not.toBeNull()
+    expect(result!).toBeCloseTo(29.65, 1)
+  })
+
+  it('round-trip: t_пол → t_ср → calculateFloorTemp воспроизводит исходную t_пол (±0.01°C)', () => {
+    const targetFloorTempC = 30
+    const tRoom = 20
+    const covering = 'tile' as const
+
+    const tMean = calculateRequiredCoolantMeanTemp(targetFloorTempC, tRoom, covering)!
+    // Подаём в calculateHeatFlux: tSupply = tMean+5, tReturn = tMean-5
+    const dt = 5
+    const q = calculateHeatFlux(tMean + dt, tMean - dt, tRoom, covering)
+    const tFloorActual = calculateFloorTemp(q, tRoom)
+
+    expect(tFloorActual).toBeCloseTo(targetFloorTempC, 1)
+  })
+
+  it('ламинат требует более высокой t_ср чем плитка для одинаковой t_пола', () => {
+    // k_laminate (0.6) < k_tile (1.0) → нужен более горячий теплоноситель
+    const tTile = calculateRequiredCoolantMeanTemp(30, 20, 'tile')!
+    const tLaminate = calculateRequiredCoolantMeanTemp(30, 20, 'laminate')!
+    expect(tLaminate).toBeGreaterThan(tTile)
+  })
+
+  it('паркет требует самой высокой t_ср среди всех покрытий (k_parquet минимальный)', () => {
+    // k: tile=1.0, linoleum=0.7, laminate=0.6, parquet=0.5
+    const results = (['tile', 'linoleum', 'laminate', 'parquet'] as const).map(
+      c => calculateRequiredCoolantMeanTemp(30, 20, c)!
+    )
+    const maxIdx = results.indexOf(Math.max(...results))
+    expect(maxIdx).toBe(3) // parquet — последний
+  })
+
+  it('более высокая целевая t_пола → более высокая t_ср теплоносителя', () => {
+    const t28 = calculateRequiredCoolantMeanTemp(28, 20, 'tile')!
+    const t30 = calculateRequiredCoolantMeanTemp(30, 20, 'tile')!
+    const t32 = calculateRequiredCoolantMeanTemp(32, 20, 'tile')!
+    expect(t28).toBeLessThan(t30)
+    expect(t30).toBeLessThan(t32)
   })
 })
