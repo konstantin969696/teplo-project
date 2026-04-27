@@ -1,13 +1,15 @@
 /**
- * Application shell: header, tab bar, content panels, toast provider.
+ * Application shell: sidebar, header, tab bar, content panels, toast provider.
+ * Layout: flex row — ProjectSidebar (left) + content column (right).
  * Tab 0 (Теплопотери) renders ClimateCard + HeatLossTab; tab 1 (Приборы отопления)
  * renders EquipmentTab; tab 2 (Гидравлика) renders HydraulicsTab;
  * tab 3 (Тёплый пол) renders UfhTab; tab 4 (Сводка) renders SummaryTab.
  */
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast, Toaster } from 'sonner'
 import { AppHeader } from './components/layout/AppHeader'
+import { ProjectSidebar } from './components/layout/ProjectSidebar'
 import { TabBar } from './components/layout/TabBar'
 import { ClimateCard } from './components/climate/ClimateCard'
 import { HeatLossTab } from './components/heatLoss/HeatLossTab'
@@ -28,15 +30,13 @@ const TAB_NAMES = ['Теплопотери', 'Приборы отопления'
 export function App() {
   const activeTab = useProjectStore(s => s.activeTab)
   const migrationRan = useRef(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     if (migrationRan.current) return
     migrationRan.current = true
 
     try {
-      // Zustand stores implement `getState()` but its return type (e.g. ProjectState)
-      // doesn't structurally match migration's internal ProjectStoreState (which has
-      // an index signature). Bridge via unknown — runtime shape is compatible.
       const api = {
         projectStore: useProjectStore,
         systemStore: useSystemStore,
@@ -47,9 +47,6 @@ export function App() {
 
       const result = runV11Migration(api)
 
-      // B1 revision: clearLegacyV10Fields runs ONLY after real migration/seed
-      // (systemId !== null → migrated=true OR seeded=true). On idempotent no-op
-      // (already migrated earlier), legacy fields are already cleared.
       if (result.systemId !== null) {
         useProjectStore.getState().clearLegacyV10Fields()
       }
@@ -60,9 +57,7 @@ export function App() {
           { duration: 6000 }
         )
       }
-      // result.seeded → silent first-run seed
 
-      // Phase 1: register existing data in the projects registry if needed
       runRegistryMigration()
     } catch (err) {
       console.error('[App] runV11Migration failed', err)
@@ -74,35 +69,43 @@ export function App() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)]">
-      <AppHeader />
-      <TabBar />
-      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4">
-        {TAB_NAMES.map((name, i) => (
-          <div
-            key={name}
-            id={`tabpanel-${i}`}
-            role="tabpanel"
-            aria-labelledby={`tab-${i}`}
-            hidden={activeTab !== i}
-          >
-            {i === 0 ? (
-              <>
-                <ClimateCard />
-                <HeatLossTab />
-              </>
-            ) : i === 1 ? (
-              <EquipmentTab />
-            ) : i === 2 ? (
-              <HydraulicsTab />
-            ) : i === 3 ? (
-              <UfhTab />
-            ) : (
-              <SummaryTab />
-            )}
-          </div>
-        ))}
-      </main>
+    <div className="flex min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)]">
+      <ProjectSidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+
+      <div className="flex-1 flex flex-col min-w-0">
+        <AppHeader onMenuClick={() => setSidebarOpen(v => !v)} />
+        <TabBar />
+        <main className="max-w-[1600px] mx-auto w-full px-4 sm:px-6 py-4">
+          {TAB_NAMES.map((name, i) => (
+            <div
+              key={name}
+              id={`tabpanel-${i}`}
+              role="tabpanel"
+              aria-labelledby={`tab-${i}`}
+              hidden={activeTab !== i}
+            >
+              {i === 0 ? (
+                <>
+                  <ClimateCard />
+                  <HeatLossTab />
+                </>
+              ) : i === 1 ? (
+                <EquipmentTab />
+              ) : i === 2 ? (
+                <HydraulicsTab />
+              ) : i === 3 ? (
+                <UfhTab />
+              ) : (
+                <SummaryTab />
+              )}
+            </div>
+          ))}
+        </main>
+      </div>
+
       <Toaster
         position="bottom-right"
         toastOptions={{
