@@ -11,6 +11,8 @@ import { SHEET_FORMATS, findFormat } from '../sheet/formats'
 import { paginate } from '../sheet/layout'
 import { SheetCanvas } from './SheetCanvas'
 import { exportToPdf } from '../backends/pdf'
+import { exportToExcel } from '../backends/excel'
+import { exportToWord } from '../backends/word'
 import { FONT_SOURCES } from '../backends/fontLoader'
 import { GostStampForm } from '../../components/export/GostStampForm'
 import type { DocumentModel, Stamp, Orientation, ExportFontFamily, StampMode } from '../types'
@@ -73,10 +75,6 @@ export function PreviewModal({ model, onClose }: PreviewModalProps) {
     return null
   }
 
-  const exportPlaceholder = (fmt: 'excel' | 'word') => {
-    toast.info(`Экспорт в ${fmt.toUpperCase()} будет добавлен в фазе ${fmt === 'excel' ? '08' : '09'}.`)
-  }
-
   const handleExportPdf = async () => {
     if (exportingFmt != null) return
     setExportingFmt('pdf')
@@ -95,6 +93,50 @@ export function PreviewModal({ model, onClose }: PreviewModalProps) {
     } catch (err) {
       console.error('[export] PDF failed', err)
       toast.error(`Ошибка экспорта PDF: ${err instanceof Error ? err.message : 'неизвестная'}`)
+    } finally {
+      setExportingFmt(null)
+    }
+  }
+
+  const handleExportExcel = async () => {
+    if (exportingFmt != null) return
+    setExportingFmt('excel')
+    try {
+      const blob = await exportToExcel(effectiveModel)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${effectiveModel.fileName}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+      toast.success('Excel готов')
+    } catch (err) {
+      console.error('[export] Excel failed', err)
+      toast.error(`Ошибка экспорта Excel: ${err instanceof Error ? err.message : 'неизвестная'}`)
+    } finally {
+      setExportingFmt(null)
+    }
+  }
+
+  const handleExportWord = async () => {
+    if (exportingFmt != null) return
+    setExportingFmt('word')
+    try {
+      const blob = await exportToWord(effectiveModel)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${effectiveModel.fileName}.docx`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+      toast.success('Word готов')
+    } catch (err) {
+      console.error('[export] Word failed', err)
+      toast.error(`Ошибка экспорта Word: ${err instanceof Error ? err.message : 'неизвестная'}`)
     } finally {
       setExportingFmt(null)
     }
@@ -125,6 +167,11 @@ export function PreviewModal({ model, onClose }: PreviewModalProps) {
                 <option key={f.id} value={f.id}>{f.label} — {f.widthMm}×{f.heightMm} мм</option>
               ))}
             </select>
+            {defaultFormatId === 'A3x3' && (
+              <p className="mt-1 text-[11px] text-[var(--color-text-secondary)]">
+                А3×3 рекомендуется для спецификаций более 50 позиций.
+              </p>
+            )}
           </Section>
 
           <Section title="Ориентация">
@@ -252,13 +299,15 @@ export function PreviewModal({ model, onClose }: PreviewModalProps) {
           />
           <ExportButton
             label="Excel"
-            onClick={() => exportPlaceholder('excel')}
+            onClick={handleExportExcel}
             disabled={exportingFmt != null}
+            busy={exportingFmt === 'excel'}
           />
           <ExportButton
             label="Word"
-            onClick={() => exportPlaceholder('word')}
+            onClick={handleExportWord}
             disabled={exportingFmt != null}
+            busy={exportingFmt === 'word'}
           />
         </footer>
       </aside>

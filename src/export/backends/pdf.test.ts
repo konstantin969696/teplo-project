@@ -123,6 +123,34 @@ describe('pdf backend', () => {
     expect(blob.size).toBeGreaterThan(500)
   })
 
+  it('renders gostStamp multi-page (форма 5 + форма 6)', async () => {
+    const longRows = Array.from({ length: 60 }, (_, i) => [
+      String(i + 1),
+      `Помещение ${i + 1}`,
+      `${(i + 1) * 80} Вт`
+    ] as const)
+    const model: DocumentModel = {
+      ...baseModel,
+      gostStamp,
+      content: [
+        { kind: 'heading', text: 'Теплопотери (ГОСТ)', level: 1 },
+        {
+          kind: 'table',
+          columns: [
+            { id: 'n', title: '№', align: 'right' },
+            { id: 'name', title: 'Помещение', align: 'left' },
+            { id: 'q', title: 'Q, Вт', align: 'right' }
+          ],
+          rows: longRows
+        }
+      ]
+    }
+    const blob = await exportToPdf(model, { fontFamily: 'roboto' })
+    expect(blob).toBeInstanceOf(Blob)
+    expect(blob.type).toBe('application/pdf')
+    expect(blob.size).toBeGreaterThan(5000)
+  })
+
   it('generates multiple pages for a long table', async () => {
     const longRows = Array.from({ length: 80 }, (_, i) => [
       String(i + 1),

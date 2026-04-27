@@ -21,6 +21,7 @@ import {
   AlignmentType,
 } from 'docx'
 import { buildDesignationCode } from '../sheet/stamp'
+import { dimensions, effectiveOrientation } from '../sheet/formats'
 import type { DocumentModel, ContentBlock, TableRow as TRow, TableCell as TCell } from '../types'
 
 const MM_TO_TWIP = 56.7
@@ -31,6 +32,8 @@ function mmToTwip(mm: number): number {
 
 export async function exportToWord(model: DocumentModel): Promise<Blob> {
   const stamp = model.gostStamp ?? model.stamp
+  const orient = effectiveOrientation(model.format, model.orientation)
+  const dims = dimensions(model.format, orient)
 
   const metaParagraphs = [
     new Paragraph({
@@ -53,6 +56,10 @@ export async function exportToWord(model: DocumentModel): Promise<Blob> {
     sections: [{
       properties: {
         page: {
+          size: {
+            width: mmToTwip(dims.widthMm),
+            height: mmToTwip(dims.heightMm),
+          },
           margin: {
             left: mmToTwip(20),
             right: mmToTwip(5),
