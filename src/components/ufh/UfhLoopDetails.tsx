@@ -68,7 +68,11 @@ export function UfhLoopDetails({
   const loopLengthM = calculateLoopLength(loop.activeAreaM2, loop.stepCm, loop.leadInM)
   const maxLen = pipe.maxLoopLengthM ?? 90
   const loopCount = calculateLoopCount(loopLengthM, maxLen)
-  const hydr = calculateLoopHydraulics(qTpW, tSupplyUfh, tReturnUfh, pipe, coolant, loopLengthM)
+  // Гидравлика считается на ОДИН контур: полная мощность и длина делятся на N контуров.
+  // Иначе при большой площади (бассейн, склад) ΔP уходит в кубические нелинейности (≈100 МПа).
+  const qPerLoop = loopCount > 0 ? qTpW / loopCount : qTpW
+  const lengthPerLoop = loopCount > 0 ? loopLengthM / loopCount : loopLengthM
+  const hydr = calculateLoopHydraulics(qPerLoop, tSupplyUfh, tReturnUfh, pipe, coolant, lengthPerLoop)
 
   const auditString = buildUfhAuditString(
     tSupplyUfh,
