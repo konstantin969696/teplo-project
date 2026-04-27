@@ -79,7 +79,10 @@ export function EquipmentRow({ room, index }: EquipmentRowProps) {
   // loop считается отключённым (он всё равно не виден в accordion тёплого пола).
   // Пустой systemId (legacy/до миграции) → дефолтные температуры 45/35.
   // Активная площадь clamped к room.area — ТП физически не может быть больше пола.
-  const qUfhActive = useMemo(() => {
+  //
+  // Comfort-mode (UFH Phase 4): comfort-контуры НЕ вычитаются из Q_пом —
+  // они регулируются термостатом и обеспечивают только комфорт пола, а не баланс.
+  const qUfhTotal = useMemo(() => {
     if (!ufhLoop || !ufhLoop.enabled) return 0
     if (ufhLoop.systemId && !systemsMap[ufhLoop.systemId]) return 0
     const ufhSystem = ufhLoop.systemId ? systemsMap[ufhLoop.systemId] : undefined
@@ -89,6 +92,10 @@ export function EquipmentRow({ room, index }: EquipmentRowProps) {
     const safeArea = Math.max(0, Math.min(room.area, ufhLoop.activeAreaM2))
     return q * safeArea
   }, [ufhLoop, systemsMap, room.tInside, room.area])
+
+  const isComfortLoop = (ufhLoop?.enabled ?? false) && ufhLoop?.mode === 'comfort'
+  const qUfhHeating = isComfortLoop ? 0 : qUfhTotal
+  const qUfhComfort = isComfortLoop ? qUfhTotal : 0
 
   // qRoom — полные теплопотери комнаты (до распределения на ТП и радиаторы).
   const [qRoom, setQRoom] = useState<number | null>(null)
@@ -108,8 +115,8 @@ export function EquipmentRow({ room, index }: EquipmentRowProps) {
 
   const qRequired = useMemo(() => {
     if (qRoom === null) return null
-    return Math.max(0, qRoom - qUfhActive)  // D-06: UFH даёт максимум, остаток → радиатор
-  }, [qRoom, qUfhActive])
+    return Math.max(0, qRoom - qUfhHeating)  // D-06: heating-UFH вычитается; comfort — нет
+  }, [qRoom, qUfhHeating])
 
   // Σ Q_факт across all equipment in the room — per-equipment LMTD (D-27).
   const qActualSum = useMemo(() => {
@@ -187,7 +194,7 @@ export function EquipmentRow({ room, index }: EquipmentRowProps) {
         <td className="px-2 py-1 text-right font-mono text-[var(--color-text-primary)] align-top">
           {qRoom === null ? (
             <span data-testid="q-required">—</span>
-          ) : qUfhActive > 0 ? (
+          ) : qUfhHeating > 0 ? (
             <div className="flex flex-col items-end leading-tight">
               <span
                 className="text-xs text-[var(--color-text-secondary)]"
@@ -196,13 +203,35 @@ export function EquipmentRow({ room, index }: EquipmentRowProps) {
                 Q_пом: {Math.round(qRoom)}
               </span>
               <span className="text-[10px] text-[var(--color-text-secondary)] mt-0.5">
-                ТП: {Math.round(qUfhActive)} · Приб.:{' '}
+                ТП: {Math.round(qUfhHeating)} · Приб.:{' '}
                 <span
                   className="font-semibold text-[var(--color-text-primary)] text-xs"
                   data-testid="q-required"
                 >
                   {Math.round(qRequired ?? 0)}
                 </span>
+              </span>
+            </div>
+          ) : qUfhComfort > 0 ? (
+            <div className="flex flex-col items-end leading-tight">
+              <span
+                className="text-xs text-[var(--color-text-secondary)]"
+                title="Общие теплопотери комнаты (Q_пом)"
+              >
+                Q_пом: {Math.round(qRoom)}
+              </span>
+              <span
+                className="text-[10px] text-[var(--color-text-secondary)] mt-0.5"
+                data-testid="q-ufh-comfort"
+                title="Комфорт-контур не вычитается из баланса отопления"
+              >
+                Комф.ТП: {Math.round(qUfhComfort)} Вт (вне баланса)
+              </span>
+              <span
+                className="font-semibold text-xs"
+                data-testid="q-required"
+              >
+                {Math.round(qRequired ?? 0)}
               </span>
             </div>
           ) : (

@@ -374,3 +374,91 @@ describe('ufh cascade (D-17)', () => {
     expect(qWithoutUfh).toBeGreaterThan(qWithUfh)
   })
 })
+
+// ============================================================
+// Phase comfort-UFH: comfort-контуры не вычитаются из qResidual
+// ============================================================
+
+describe('ufh cascade — comfort mode (Phase 4)', () => {
+  beforeEach(() => {
+    useProjectStore.setState({
+      city: { name: 'Москва', tOutside: -25, gsop: 4943, humidityZone: 'Б' },
+      tInside: 20,
+      rooms: { 'room-UFH': ufhRoom },
+      roomOrder: ['room-UFH'],
+      customCities: [],
+    })
+    setupDefaultSystem()
+    useEnclosureStore.setState({
+      enclosures: {
+        'enc-w': {
+          id: 'enc-w', roomId: 'room-UFH', type: 'wall-ext', orientation: 'С',
+          area: 10, kValue: 0.5, nCoeff: 1.0, nOverridden: false,
+          adjacentRoomName: null, tAdjacent: null, perimeterOverride: null,
+          zoneR: [2.1, 4.3, 8.6, 14.2], parentEnclosureId: null, constructionId: null
+        },
+      },
+      enclosureOrder: ['enc-w'],
+    })
+    useEquipmentStore.setState({ equipment: {}, equipmentOrder: [] })
+    useUfhLoopStore.setState({ loops: {}, loopsByRoom: {} })
+  })
+
+  it('comfort-контур НЕ вычитается из qRequired', async () => {
+    renderRow(ufhRoom)
+    await waitFor(() => expect(screen.getByTestId('q-required').textContent).not.toBe('—'))
+    const qRoomOnly = parseFloat(screen.getByTestId('q-required').textContent ?? '0')
+
+    act(() => {
+      useUfhLoopStore.getState().addLoop({
+        roomId: 'room-UFH', enabled: true, activeAreaM2: 8, covering: 'tile',
+        pipeId: 'pe-x-16-2', stepCm: 20, leadInM: 3,
+        mode: 'comfort', targetFloorTempC: 30,
+      })
+    })
+
+    await waitFor(() => {
+      const text = screen.getByTestId('q-required').textContent
+      expect(text).not.toBe('—')
+    })
+    const qWithComfort = parseFloat(screen.getByTestId('q-required').textContent ?? '0')
+    expect(qWithComfort).toBeCloseTo(qRoomOnly, 0)
+  })
+
+  it('heating-контур по-прежнему вычитается из qRequired', async () => {
+    renderRow(ufhRoom)
+    await waitFor(() => expect(screen.getByTestId('q-required').textContent).not.toBe('—'))
+    const qRoomOnly = parseFloat(screen.getByTestId('q-required').textContent ?? '0')
+
+    act(() => {
+      useUfhLoopStore.getState().addLoop({
+        roomId: 'room-UFH', enabled: true, activeAreaM2: 8, covering: 'tile',
+        pipeId: 'pe-x-16-2', stepCm: 20, leadInM: 3,
+        mode: 'heating',
+      })
+    })
+
+    const qWithHeating = parseFloat(screen.getByTestId('q-required').textContent ?? '0')
+    expect(qWithHeating).toBeLessThan(qRoomOnly)
+  })
+
+  it('comfort-контур: отображается строка "вне баланса"', async () => {
+    act(() => {
+      useUfhLoopStore.getState().addLoop({
+        roomId: 'room-UFH', enabled: true, activeAreaM2: 8, covering: 'tile',
+        pipeId: 'pe-x-16-2', stepCm: 20, leadInM: 3,
+        mode: 'comfort', targetFloorTempC: 30,
+      })
+    })
+
+    renderRow(ufhRoom)
+    await waitFor(() => expect(screen.getByTestId('q-required').textContent).not.toBe('—'))
+
+    const comfortEl = screen.getByTestId('q-ufh-comfort')
+    expect(comfortEl).toBeInTheDocument()
+    expect(comfortEl.textContent).toMatch(/вне баланса/i)
+    const match = (comfortEl.textContent ?? '').match(/\d+/)
+    expect(match).not.toBeNull()
+    expect(parseInt(match![0], 10)).toBeGreaterThan(0)
+  })
+})
