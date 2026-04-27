@@ -17,7 +17,7 @@ import type { Equipment, EquipmentState } from '../types/project'
 import { safeStorage, shapeMerge } from './safeStorage'
 import { uuid } from './uuid'
 
-const defaultEquipmentData = {
+export const defaultEquipmentData = {
   equipment: {} as Record<string, Equipment>,
   equipmentOrder: [] as string[]
 }

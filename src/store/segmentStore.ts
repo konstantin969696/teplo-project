@@ -48,11 +48,15 @@ export interface SegmentState {
   bulkAddSegments: (segs: ReadonlyArray<Omit<Segment, 'id'>>) => readonly string[]
 }
 
+export const defaultSegmentData = {
+  segments: {} as Record<string, Segment>,
+  segmentOrder: [] as string[]
+}
+
 export const useSegmentStore = create<SegmentState>()(
   persist(
     (set) => ({
-      segments: {},
-      segmentOrder: [],
+      ...defaultSegmentData,
 
       addSegment: (seg: Omit<Segment, 'id'>): string => {
         const id = uuid()

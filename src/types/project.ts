@@ -175,6 +175,42 @@ export interface ProjectState extends ProjectData {
 export const PROJECT_VERSION = 1
 
 // ============================================================
+// Projects Manager types (Phase 1)
+// ============================================================
+
+export interface ProjectMeta {
+  readonly id: string
+  readonly name: string
+  readonly createdAt: number  // Date.now()
+  readonly updatedAt: number
+}
+
+export interface ProjectSnapshot {
+  readonly version: 1
+  readonly project: ProjectData
+  readonly enclosures: {
+    readonly enclosures: Record<string, Enclosure>
+    readonly enclosureOrder: readonly string[]
+  }
+  readonly systems: {
+    readonly systems: Record<string, import('./system').HeatingSystem>
+    readonly systemOrder: readonly string[]
+  }
+  readonly segments: {
+    readonly segments: Record<string, import('./hydraulics').Segment>
+    readonly segmentOrder: readonly string[]
+  }
+  readonly equipment: {
+    readonly equipment: Record<string, Equipment>
+    readonly equipmentOrder: readonly string[]
+  }
+  readonly ufhLoops: {
+    readonly loops: Record<string, import('./hydraulics').UfhLoop>
+    readonly loopsByRoom: Record<string, string>
+  }
+}
+
+// ============================================================
 // Phase 3: Equipment Selection types
 // ============================================================
 

@@ -18,7 +18,7 @@ import type { HeatingSystem, SystemState } from '../types/system'
 import { safeStorage, shapeMerge } from './safeStorage'
 import { uuid } from './uuid'
 
-const defaultSystemData = {
+export const defaultSystemData = {
   systems: {} as Record<string, HeatingSystem>,
   systemOrder: [] as string[]
 }

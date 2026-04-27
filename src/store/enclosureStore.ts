@@ -11,7 +11,7 @@ import { safeStorage } from './safeStorage'
 import { uuid } from './uuid'
 import { toast } from 'sonner'
 
-const defaultEnclosureData = {
+export const defaultEnclosureData = {
   enclosures: {} as Record<string, Enclosure>,
   enclosureOrder: [] as string[]
 }

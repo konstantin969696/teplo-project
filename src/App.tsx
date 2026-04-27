@@ -21,6 +21,7 @@ import { useSystemStore } from './store/systemStore'
 import { useSegmentStore } from './store/segmentStore'
 import { useEquipmentStore } from './store/equipmentStore'
 import { useUfhLoopStore } from './store/ufhLoopStore'
+import { runRegistryMigration } from './services/projectSnapshot'
 
 const TAB_NAMES = ['Теплопотери', 'Приборы отопления', 'Гидравлика', 'Тёплый пол', 'Сводка'] as const
 
@@ -60,6 +61,9 @@ export function App() {
         )
       }
       // result.seeded → silent first-run seed
+
+      // Phase 1: register existing data in the projects registry if needed
+      runRegistryMigration()
     } catch (err) {
       console.error('[App] runV11Migration failed', err)
       toast.error(

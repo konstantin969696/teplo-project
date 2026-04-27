@@ -35,11 +35,15 @@ export interface UfhLoopState {
   bulkSetSystemId: (systemId: string) => void
 }
 
+export const defaultUfhLoopData = {
+  loops: {} as Record<string, UfhLoop>,
+  loopsByRoom: {} as Record<string, string>
+}
+
 export const useUfhLoopStore = create<UfhLoopState>()(
   persist(
     (set) => ({
-      loops: {},
-      loopsByRoom: {},
+      ...defaultUfhLoopData,
 
       addLoop: (loop: Omit<UfhLoop, 'id'>): string => {
         // If room already has a loop — update it instead of creating duplicate

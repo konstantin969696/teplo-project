@@ -19,7 +19,7 @@ import { applyImportedStores } from '../services/importService'
 import { uuid } from './uuid'
 import { toast } from 'sonner'
 
-const defaultProjectData: ProjectData = {
+export const defaultProjectData: ProjectData = {
   city: null,
   tInside: 20,
   rooms: {},
