@@ -11,10 +11,29 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { safeStorage, shapeMerge } from '../../store/safeStorage'
 import { EMPTY_STAMP } from '../sheet/stamp'
-import type { Stamp, Orientation, ExportFontFamily, StampMode } from '../types'
+import type { Stamp, Orientation, ExportFontFamily, StampMode, GostStampParams } from '../types'
+
+export const EMPTY_GOST_STAMP: GostStampParams = {
+  objectName: '',
+  objectCode: '',
+  subsectionCode: '',
+  stageCode: 'Р',
+  markCode: 'ОВ',
+  drawingTitle: '',
+  drawingMark: '',
+  authorName: '',
+  checkerName: '',
+  gipName: '',
+  normControlName: '',
+  approverName: '',
+  companyName: '',
+  companyDept: '',
+  date: new Date().toISOString().slice(0, 10),
+}
 
 export interface ExportState {
   readonly stamp: Stamp
+  readonly gostStamp: GostStampParams
   readonly defaultFormatId: string
   readonly defaultOrientation: Orientation
   readonly fontFamily: ExportFontFamily
@@ -22,6 +41,8 @@ export interface ExportState {
   readonly defaultFooterLine: string
   setStampField: <K extends keyof Stamp>(key: K, value: Stamp[K]) => void
   setStamp: (stamp: Stamp) => void
+  setGostStampField: <K extends keyof GostStampParams>(key: K, value: GostStampParams[K]) => void
+  resetGostStamp: () => void
   setDefaultFormat: (id: string) => void
   setDefaultOrientation: (o: Orientation) => void
   setFontFamily: (f: ExportFontFamily) => void
@@ -32,6 +53,7 @@ export interface ExportState {
 
 const initialState = {
   stamp: EMPTY_STAMP,
+  gostStamp: EMPTY_GOST_STAMP,
   defaultFormatId: 'A4',
   defaultOrientation: 'portrait' as Orientation,
   fontFamily: 'roboto' as ExportFontFamily,
@@ -45,11 +67,12 @@ const initialState = {
  */
 function mergeStamp(persistedStamp: unknown): Stamp {
   if (typeof persistedStamp !== 'object' || persistedStamp === null) return EMPTY_STAMP
-  const p = persistedStamp as Partial<Stamp>
-  return {
-    ...EMPTY_STAMP,
-    ...p
-  }
+  return { ...EMPTY_STAMP, ...(persistedStamp as Partial<Stamp>) }
+}
+
+function mergeGostStamp(persisted: unknown): GostStampParams {
+  if (typeof persisted !== 'object' || persisted === null) return EMPTY_GOST_STAMP
+  return { ...EMPTY_GOST_STAMP, ...(persisted as Partial<GostStampParams>) }
 }
 
 export const useExportStore = create<ExportState>()(
@@ -61,6 +84,10 @@ export const useExportStore = create<ExportState>()(
         stamp: { ...state.stamp, [key]: value }
       })),
       setStamp: (stamp) => set({ stamp }),
+      setGostStampField: (key, value) => set(state => ({
+        gostStamp: { ...state.gostStamp, [key]: value }
+      })),
+      resetGostStamp: () => set({ gostStamp: EMPTY_GOST_STAMP }),
       setDefaultFormat: (id) => set({ defaultFormatId: id }),
       setDefaultOrientation: (o) => set({ defaultOrientation: o }),
       setFontFamily: (f) => set({ fontFamily: f }),
@@ -70,10 +97,11 @@ export const useExportStore = create<ExportState>()(
     }),
     {
       name: 'teplo-export',
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => safeStorage),
       partialize: (state) => ({
         stamp: state.stamp,
+        gostStamp: state.gostStamp,
         defaultFormatId: state.defaultFormatId,
         defaultOrientation: state.defaultOrientation,
         fontFamily: state.fontFamily,
@@ -82,10 +110,14 @@ export const useExportStore = create<ExportState>()(
       } as unknown as ExportState),
       merge: (persisted, current) => {
         const merged = shapeMerge(persisted, current as ExportState, {
-          stamp: 'record'
+          stamp: 'record',
+          gostStamp: 'record'
         })
-        // Дозаливаем новые поля Stamp из EMPTY_STAMP
-        return { ...merged, stamp: mergeStamp(merged.stamp) }
+        return {
+          ...merged,
+          stamp: mergeStamp(merged.stamp),
+          gostStamp: mergeGostStamp(merged.gostStamp)
+        }
       },
       onRehydrateStorage: () => (_state, error) => {
         if (error) console.error('[exportStore] rehydration failed', error)

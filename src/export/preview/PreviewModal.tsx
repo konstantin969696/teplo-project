@@ -12,6 +12,7 @@ import { paginate } from '../sheet/layout'
 import { SheetCanvas } from './SheetCanvas'
 import { exportToPdf } from '../backends/pdf'
 import { FONT_SOURCES } from '../backends/fontLoader'
+import { GostStampForm } from '../../components/export/GostStampForm'
 import type { DocumentModel, Stamp, Orientation, ExportFontFamily, StampMode } from '../types'
 
 interface PreviewModalProps {
@@ -23,6 +24,9 @@ export function PreviewModal({ model, onClose }: PreviewModalProps) {
   const stampStored = useExportStore(s => s.stamp)
   const setStampField = useExportStore(s => s.setStampField)
   const setStamp = useExportStore(s => s.setStamp)
+  const gostStamp = useExportStore(s => s.gostStamp)
+  const setGostStampField = useExportStore(s => s.setGostStampField)
+  const resetGostStamp = useExportStore(s => s.resetGostStamp)
   const defaultFormatId = useExportStore(s => s.defaultFormatId)
   const setDefaultFormat = useExportStore(s => s.setDefaultFormat)
   const defaultOrientation = useExportStore(s => s.defaultOrientation)
@@ -36,6 +40,7 @@ export function PreviewModal({ model, onClose }: PreviewModalProps) {
 
   const [sheetIdx, setSheetIdx] = useState(0)
   const [exportingFmt, setExportingFmt] = useState<'pdf' | 'excel' | 'word' | null>(null)
+  const [stampType, setStampType] = useState<'form1' | 'gost'>('form1')
 
   // Применяем поля штампа: общие сохраняем в store, drawingTitle/drawingMark
   // приходят из model (per-document). Если пользователь меняет drawingTitle/Mark
@@ -58,8 +63,9 @@ export function PreviewModal({ model, onClose }: PreviewModalProps) {
     orientation: defaultOrientation,
     stamp,
     stampMode: defaultStampMode,
-    footerLine: defaultFooterLine
-  }), [model, defaultFormatId, defaultOrientation, stamp, defaultStampMode, defaultFooterLine])
+    footerLine: defaultFooterLine,
+    gostStamp: stampType === 'gost' ? gostStamp : undefined,
+  }), [model, defaultFormatId, defaultOrientation, stamp, defaultStampMode, defaultFooterLine, stampType, gostStamp])
 
   const sheets = useMemo(() => paginate(effectiveModel), [effectiveModel])
   const currentSheet = sheets[Math.min(sheetIdx, Math.max(0, sheets.length - 1))]
@@ -188,7 +194,28 @@ export function PreviewModal({ model, onClose }: PreviewModalProps) {
             )}
           </Section>
 
-          {defaultStampMode === 'full' && (
+          <Section title="Тип штампа">
+            <div className="flex gap-2">
+              {([
+                { id: 'form1', label: 'Чертёж (форма 1)' },
+                { id: 'gost', label: 'Текстовый документ (форма 5/6)' }
+              ] as { id: 'form1' | 'gost'; label: string }[]).map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => setStampType(opt.id)}
+                  aria-pressed={stampType === opt.id}
+                  className={`flex-1 px-2 py-1.5 rounded border text-xs
+                    ${stampType === opt.id
+                      ? 'bg-[var(--color-accent,#3b82f6)] text-white border-transparent'
+                      : 'bg-[var(--color-surface)] border-[var(--color-border)]'}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </Section>
+
+          {stampType === 'form1' && defaultStampMode === 'full' && (
             <Section title="Параметры штампа">
               <StampForm
                 stamp={stamp}
@@ -200,6 +227,16 @@ export function PreviewModal({ model, onClose }: PreviewModalProps) {
                 })}
                 onApplyAll={() => setStamp(stamp)}
                 onLogoChange={dataUrl => setStampField('logoDataUrl', dataUrl)}
+              />
+            </Section>
+          )}
+
+          {stampType === 'gost' && (
+            <Section title="Параметры штампа (форма 5/6)">
+              <GostStampForm
+                stamp={gostStamp}
+                onChange={(k, v) => setGostStampField(k, v)}
+                onReset={resetGostStamp}
               />
             </Section>
           )}
