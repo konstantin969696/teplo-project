@@ -7,6 +7,7 @@ import { useSystemStore } from '../store/systemStore'
 import { useSegmentStore } from '../store/segmentStore'
 import { useEquipmentStore } from '../store/equipmentStore'
 import { useUfhLoopStore } from '../store/ufhLoopStore'
+import { useEnclosureStore } from '../store/enclosureStore'
 import { shapeMerge } from '../store/safeStorage'
 import { toast } from 'sonner'
 
@@ -15,6 +16,19 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
 }
 
 export function applyImportedStores(data: Record<string, unknown>): void {
+  if (data.enclosures !== undefined) {
+    if (!isPlainObject(data.enclosures)) {
+      console.warn('[importService] skipped enclosures: not a plain object')
+    } else {
+      const validated = shapeMerge(
+        { enclosures: data.enclosures, enclosureOrder: data.enclosureOrder },
+        { enclosures: {} as Record<string, never>, enclosureOrder: [] as string[] },
+        { enclosures: 'record', enclosureOrder: 'array-of-string' }
+      )
+      useEnclosureStore.setState({ enclosures: validated.enclosures, enclosureOrder: validated.enclosureOrder })
+    }
+  }
+
   if (data.systems !== undefined) {
     if (!isPlainObject(data.systems)) {
       console.warn('[importService] skipped systems: not a plain object')
