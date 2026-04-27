@@ -66,7 +66,11 @@ export interface Enclosure {
   readonly nCoeff: number          // reduction factor n
   readonly nOverridden: boolean    // true when user changed n manually
   readonly adjacentRoomName: string | null
-  readonly tAdjacent: number | null        // C, for internal types
+  // Temperature of the adjacent space, °C. Applies to any enclosure type.
+  // When set, engine uses encDeltaT = max(0, tInside − tAdjacent) instead of
+  // the global (tInside − tOutside). At tAdjacent ≥ tInside the heat loss is 0.
+  // null = no adjacent heated space; use global deltaT and stored nCoeff.
+  readonly tAdjacent: number | null
   readonly perimeterOverride: number | null  // null = auto for floor-ground
   readonly zoneR: readonly [number, number, number, number]  // R_ред for zones I-IV
   // Parent wall for windows/doors — the engine subtracts their area from the

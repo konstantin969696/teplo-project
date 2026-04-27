@@ -226,8 +226,12 @@ export function buildEnclosureAuditString(
     ? `${netArea.toFixed(2)} (брутто ${enc.area} − дети ${(enc.area - netArea).toFixed(2)})`
     : String(enc.area)
   const areaForFormula = netArea ?? enc.area
+  const deltaTSource = enc.tAdjacent !== null
+    ? `t_adj = ${enc.tAdjacent}°C`
+    : 't_out'
   return [
     'Q = K * A * deltaT * n * (1 + beta_or + beta_corner)',
+    `  deltaT = ${deltaT} (${deltaTSource})`,
     `  = ${enc.kValue} * ${areaLabel} * ${deltaT} * ${enc.nCoeff} * (1 + ${betaOr.toFixed(2)} + ${betaCorner.toFixed(2)})`,
     `  = ${enc.kValue} * ${areaForFormula} * ${deltaT} * ${enc.nCoeff} * ${(1 + betaOr + betaCorner).toFixed(2)}`,
     `  = ${q.toFixed(1)} Вт`,
