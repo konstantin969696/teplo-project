@@ -254,6 +254,58 @@ describe('calculateRoomTotals', () => {
   })
 })
 
+describe('calculateRoomTotals — tAdjacent', () => {
+  const baseRoom = {
+    id: 'r1', name: 'Room', floor: 1, area: 20, height: 2.7,
+    isCorner: false, infiltrationMethod: 'rate' as const,
+    nInfiltration: 0, gapArea: null, windSpeed: null, lVentilation: 0,
+    tInside: 20,
+  }
+
+  const makeEnc = (overrides: Partial<typeof baseEnc>) => ({ ...baseEnc, ...overrides })
+  const baseEnc = {
+    id: 'e1', roomId: 'r1', type: 'ceiling' as const,
+    orientation: null as null, area: 10, kValue: 0.5, nCoeff: 1.0,
+    nOverridden: false, adjacentRoomName: null, tAdjacent: null as null | number,
+    perimeterOverride: null, zoneR: [2.1, 4.3, 8.6, 14.2] as const,
+    parentEnclosureId: null, constructionId: null,
+  }
+
+  it('tAdjacent=null → behaviour unchanged (regression)', () => {
+    const deltaT = 48  // 20 − (−28)
+    const result = calculateRoomTotals([makeEnc({ tAdjacent: null, nCoeff: 0.4 })], baseRoom, deltaT)
+    // Q = 0.5 * 10 * 48 * 0.4 = 96
+    expect(result.qBasic).toBeCloseTo(96, 0)
+  })
+
+  it('tAdjacent = tInside → Q = 0', () => {
+    const result = calculateRoomTotals([makeEnc({ tAdjacent: 20 })], baseRoom, 48)
+    expect(result.qBasic).toBe(0)
+  })
+
+  it('tAdjacent > tInside → Q = 0 (обратный поток не моделируем)', () => {
+    const result = calculateRoomTotals([makeEnc({ tAdjacent: 25 })], baseRoom, 48)
+    expect(result.qBasic).toBe(0)
+  })
+
+  it('tAdjacent = 16, tInside = 20 → Q = K*A*4*1 (не K*A*48*0.4)', () => {
+    // With tAdjacent: encDeltaT = 4, encNCoeff = 1 → Q = 0.5*10*4*1 = 20
+    // Old (wrong) without tAdjacent: Q = 0.5*10*48*0.4 = 96
+    const result = calculateRoomTotals([makeEnc({ tAdjacent: 16 })], baseRoom, 48)
+    expect(result.qBasic).toBeCloseTo(20, 0)
+  })
+
+  it('tAdjacent set but nOverridden=true → user nCoeff preserved', () => {
+    // encDeltaT = max(0, 20-16) = 4, encNCoeff = 0.6 (user override kept)
+    // Q = 0.5 * 10 * 4 * 0.6 = 12
+    const result = calculateRoomTotals(
+      [makeEnc({ tAdjacent: 16, nCoeff: 0.6, nOverridden: true })],
+      baseRoom, 48
+    )
+    expect(result.qBasic).toBeCloseTo(12, 0)
+  })
+})
+
 describe('buildEnclosureAuditString', () => {
   it('produces string with formula and values', () => {
     const enc = {

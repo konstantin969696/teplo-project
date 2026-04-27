@@ -174,9 +174,16 @@ export function calculateRoomTotals(
       const zones = calculateFloorZones(floorArea, perimeter, enc.zoneR, deltaT)
       qBasic += zones.reduce((sum, z) => sum + z.qWatts, 0)
     } else {
+      // When tAdjacent is known, use real ΔT = max(0, t_inside − t_adj).
+      // n is reset to 1.0 unless the user explicitly overrode it (nOverridden),
+      // because n approximates an unknown t_adj — once t_adj is known, n=1.
+      const encDeltaT = enc.tAdjacent !== null
+        ? Math.max(0, room.tInside - enc.tAdjacent)
+        : deltaT
+      const encNCoeff = (enc.tAdjacent !== null && !enc.nOverridden) ? 1.0 : enc.nCoeff
       const area = effectiveEnclosureArea(enc, childrenAreaMap)
       qBasic += calculateQBasic(
-        enc.kValue, area, deltaT, enc.nCoeff,
+        enc.kValue, area, encDeltaT, encNCoeff,
         enc.orientation, room.isCorner
       )
     }
