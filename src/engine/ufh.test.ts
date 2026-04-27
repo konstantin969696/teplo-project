@@ -9,6 +9,7 @@ import {
   calculateLoopHydraulics,
   calculateRequiredCoolantMeanTemp,
   buildUfhAuditString,
+  deriveComfortTemps,
 } from './ufh'
 import type { CoolantSpec, PipeSpec } from '../types/hydraulics'
 
@@ -237,5 +238,55 @@ describe('calculateRequiredCoolantMeanTemp (UFH-08)', () => {
     const t32 = calculateRequiredCoolantMeanTemp(32, 20, 'tile')!
     expect(t28).toBeLessThan(t30)
     expect(t30).toBeLessThan(t32)
+  })
+})
+
+describe('deriveComfortTemps (UFH-09)', () => {
+  it('возвращает null когда target ≤ tRoom', () => {
+    expect(deriveComfortTemps(20, 20, 'tile', 45, 40)).toBeNull()
+    expect(deriveComfortTemps(19, 20, 'tile', 45, 40)).toBeNull()
+  })
+
+  it('tSupply и tReturn кратны 5°C', () => {
+    // Любая комбинация параметров должна давать кратные 5 результаты
+    const r = deriveComfortTemps(33, 20, 'tile', 45, 40)
+    expect(r).not.toBeNull()
+    expect(r!.tSupply % 5).toBe(0)
+    expect(r!.tReturn % 5).toBe(0)
+  })
+
+  it('tile target=33°C, system 45/40 (dt=5) → tSup=35, tRet=30', () => {
+    // tMean ≈ 32.25; tSupRaw≈34.75→35, tRetRaw≈29.75→30
+    const r = deriveComfortTemps(33, 20, 'tile', 45, 40)
+    expect(r).not.toBeNull()
+    expect(r!.tSupply).toBe(35)
+    expect(r!.tReturn).toBe(30)
+  })
+
+  it('floorTempActual соответствует calculateHeatFlux от округлённых tSup/tRet', () => {
+    const r = deriveComfortTemps(33, 20, 'tile', 45, 40)!
+    const qCheck = calculateHeatFlux(r.tSupply, r.tReturn, 20, 'tile')
+    const floorCheck = calculateFloorTemp(qCheck, 20)
+    expect(r.floorTempActual).toBeCloseTo(floorCheck, 3)
+  })
+
+  it('target=33°C, tile, system 45/35 (dt=10) → tSup=35, tRet=25', () => {
+    // tMean ≈ 32.25; tSupRaw≈37.25→35, tRetRaw≈27.25→25
+    const r = deriveComfortTemps(33, 20, 'tile', 45, 35)
+    expect(r).not.toBeNull()
+    expect(r!.tSupply).toBe(35)
+    expect(r!.tReturn).toBe(25)
+  })
+
+  it('более высокая целевая t_пола → более высокие tSup/tRet', () => {
+    const r29 = deriveComfortTemps(29, 20, 'tile', 45, 40)!
+    const r33 = deriveComfortTemps(33, 20, 'tile', 45, 40)!
+    expect(r33.tSupply).toBeGreaterThanOrEqual(r29.tSupply)
+  })
+
+  it('ламинат требует более высоких tSup/tRet чем плитка для той же целевой t_пола', () => {
+    const tile = deriveComfortTemps(33, 20, 'tile', 45, 40)!
+    const lam = deriveComfortTemps(33, 20, 'laminate', 45, 40)!
+    expect(lam.tSupply).toBeGreaterThanOrEqual(tile.tSupply)
   })
 })

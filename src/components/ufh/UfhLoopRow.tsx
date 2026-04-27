@@ -30,7 +30,7 @@ import { useSystemStore, selectOrderedSystems } from '../../store/systemStore'
 import { usePipeCatalogStore } from '../../store/pipeCatalogStore'
 import { useEnclosureStore, selectEnclosuresByRoom } from '../../store/enclosureStore'
 import { useUfhSystemTemps } from '../../hooks/useUfhSystemTemps'
-import { calculateHeatFlux, calculateFloorTemp, calculateRequiredCoolantMeanTemp } from '../../engine/ufh'
+import { calculateHeatFlux, calculateFloorTemp, deriveComfortTemps } from '../../engine/ufh'
 import { getEngineWorker } from '../../workers/useEngineWorker'
 import {
   COVERING_LABELS,
@@ -111,15 +111,14 @@ export function UfhLoopRow({ room, index }: UfhLoopRowProps) {
     const effectiveArea = loop?.activeAreaM2 ?? defaultAreaM2
     const isEnabled = loop?.enabled ?? false
 
-    // Comfort mode: подбираем t_теплоносителя через обратную задачу (UFH-08).
+    // Comfort mode (UFH-09): обратная задача с округлением до шага 5°C.
     let tSup = tSupplyUfh
     let tRet = tReturnUfh
     if (loop?.mode === 'comfort' && loop.targetFloorTempC != null) {
-      const tMean = calculateRequiredCoolantMeanTemp(loop.targetFloorTempC, room.tInside, effectiveCovering)
-      if (tMean !== null) {
-        const dt = Math.max(1, tSupplyUfh - tReturnUfh)
-        tSup = tMean + dt / 2
-        tRet = tMean - dt / 2
+      const result = deriveComfortTemps(loop.targetFloorTempC, room.tInside, effectiveCovering, tSupplyUfh, tReturnUfh)
+      if (result !== null) {
+        tSup = result.tSupply
+        tRet = result.tReturn
       }
     }
 

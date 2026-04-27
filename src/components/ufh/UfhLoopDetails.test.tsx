@@ -94,11 +94,11 @@ describe('UfhLoopDetails — heating mode (no banner)', () => {
 })
 
 describe('UfhLoopDetails — comfort mode с valid targetFloorTempC', () => {
-  it('показывает comfort banner с подобранными температурами', () => {
+  it('показывает comfort banner с подобранными температурами (фактическая t_пола ≠ цель)', () => {
+    // COMMON_PROPS.floorTempC=35, targetFloorTempC=30 → разница 5°C > 0.1 → ветка "фактическая"
     const sysId = setupSystem()
     const loop = makeLoop(sysId, { mode: 'comfort', targetFloorTempC: 30 })
 
-    // Compute effective temps the same way UfhLoopRow would
     const tMean = calculateRequiredCoolantMeanTemp(30, ROOM.tInside, 'tile')!
     const dt = 10 // 45-35
     const tSupEff = tMean + dt / 2
@@ -111,6 +111,25 @@ describe('UfhLoopDetails — comfort mode с valid targetFloorTempC', () => {
         loop={loop}
         tSupplyEff={tSupEff}
         tReturnEff={tRetEff}
+      />
+    )
+    expect(screen.getByText(/Комфорт-режим: подобрано/i)).toBeInTheDocument()
+    expect(screen.getByText(/фактическая t_пола/i)).toBeInTheDocument()
+    expect(screen.getByText(/вместо целевой/i)).toBeInTheDocument()
+  })
+
+  it('показывает "для t_пола" когда фактическая t_пола совпадает с целью (±0.1°C)', () => {
+    const sysId = setupSystem()
+    const loop = makeLoop(sysId, { mode: 'comfort', targetFloorTempC: 30 })
+
+    render(
+      <UfhLoopDetails
+        {...COMMON_PROPS}
+        floorTempC={30.05}  // within 0.1°C of target=30 → "для t_пола" branch
+        room={ROOM}
+        loop={loop}
+        tSupplyEff={40}
+        tReturnEff={30}
       />
     )
     expect(screen.getByText(/Комфорт-режим: подобрано/i)).toBeInTheDocument()

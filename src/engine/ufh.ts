@@ -140,6 +140,35 @@ export function calculateRequiredCoolantMeanTemp(
   return tRoom + dtCoolant
 }
 
+export interface ComfortTempsResult {
+  readonly tSupply: number
+  readonly tReturn: number
+  readonly floorTempActual: number
+}
+
+/**
+ * UFH-09: Обратная задача с округлением до шага 5°C.
+ * Из целевой t_пола вычисляет tSupply/tReturn, округлённые кратно 5°C,
+ * и пересчитывает фактическую t_пола из округлённых температур.
+ *
+ * @returns null если целевая t_пола ≤ t_воздуха (теплоотдача невозможна).
+ */
+export function deriveComfortTemps(
+  targetFloorTempC: number,
+  tRoom: number,
+  covering: FloorCovering,
+  tSupplySystem: number,
+  tReturnSystem: number,
+): ComfortTempsResult | null {
+  const tMean = calculateRequiredCoolantMeanTemp(targetFloorTempC, tRoom, covering)
+  if (tMean === null) return null
+  const dt = Math.max(1, tSupplySystem - tReturnSystem)
+  const tSupply = Math.round((tMean + dt / 2) / 5) * 5
+  const tReturn = Math.round((tMean - dt / 2) / 5) * 5
+  const q = calculateHeatFlux(tSupply, tReturn, tRoom, covering)
+  return { tSupply, tReturn, floorTempActual: calculateFloorTemp(q, tRoom) }
+}
+
 /**
  * Строка аудита для расчёта UFН-контура.
  */

@@ -189,10 +189,22 @@ export function UfhLoopDetails({
         <div className="mb-3 px-3 py-2 rounded-md bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/30 text-xs text-[var(--color-text-primary)]">
           {comfortTempsAdjusted ? (
             <>
-              Комфорт-режим: подобрано{' '}
-              <span className="font-mono font-semibold">{tSup.toFixed(1)}/{tRet.toFixed(1)}°C</span>{' '}
-              для t_пола{' '}
-              <span className="font-mono font-semibold">{loop.targetFloorTempC}°C</span>
+              {Math.abs(floorTempC - (loop.targetFloorTempC ?? 0)) <= 0.1 ? (
+                <>
+                  Комфорт-режим: подобрано{' '}
+                  <span className="font-mono font-semibold">{Math.round(tSup)}/{Math.round(tRet)}°C</span>{' '}
+                  для t_пола{' '}
+                  <span className="font-mono font-semibold">{loop.targetFloorTempC}°C</span>
+                </>
+              ) : (
+                <>
+                  Комфорт-режим: подобрано{' '}
+                  <span className="font-mono font-semibold">{Math.round(tSup)}/{Math.round(tRet)}°C</span>
+                  {' → фактическая t_пола '}
+                  <span className="font-mono font-semibold">{floorTempC.toFixed(1)}°C</span>
+                  {` (вместо целевой ${loop.targetFloorTempC}°C)`}
+                </>
+              )}
             </>
           ) : (
             <span className="text-[var(--color-destructive)]">
@@ -205,10 +217,7 @@ export function UfhLoopDetails({
       <div className="grid grid-cols-4 gap-4 mb-3 font-mono text-xs">
         <div>
           <span className="text-[var(--color-text-secondary)]"><ColumnHint label="t_пол_ср:" hint={UFH_HINTS.t_floor} /> </span>
-          {isComfort && loop.targetFloorTempC != null && comfortTempsAdjusted
-            ? <span className="font-semibold">{loop.targetFloorTempC.toFixed(1)}</span>
-            : formatFloorTemp(floorTempC)
-          }°C{' '}
+          {formatFloorTemp(floorTempC)}°C{' '}
           <span className="text-[var(--color-text-secondary)]">(≤ {threshold}°C)</span>
         </div>
         <div>
