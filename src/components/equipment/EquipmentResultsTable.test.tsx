@@ -4,9 +4,33 @@
  *         Σ aggregation, insufficient row styling.
  */
 
-import { beforeEach, describe, expect, it } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
+import { calculateRoomTotals } from '../../engine/heatLoss'
+
+vi.mock('../../workers/useEngineWorker', () => ({
+  getEngineWorker: () => ({
+    heatLossForRooms: async (
+      enclosures: Record<string, never>,
+      enclosureOrder: string[],
+      rooms: Record<string, never>,
+      roomOrder: string[],
+      tOutside: number
+    ) => {
+      const enclList = enclosureOrder.map(id => enclosures[id]).filter(Boolean)
+      return roomOrder
+        .map(id => rooms[id])
+        .filter(Boolean)
+        .map(room => {
+          const re = enclList.filter(e => (e as { roomId: string }).roomId === (room as { id: string }).id)
+          const dt = (room as { tInside: number }).tInside - tOutside
+          return calculateRoomTotals(re as never, room as never, dt)
+        })
+    },
+  }),
+}))
+
 import { EquipmentResultsTable } from './EquipmentResultsTable'
 import { useProjectStore } from '../../store/projectStore'
 import { useEnclosureStore } from '../../store/enclosureStore'
@@ -69,7 +93,7 @@ describe('EquipmentResultsTable', () => {
     expect(cells[5].textContent).toBe('—') // Запас
   })
 
-  it('renders sectional typeSize "× N секц." and computes qActual for bimetal equipment', () => {
+  it('renders sectional typeSize "× N секц." and computes qActual for bimetal equipment', async () => {
     const room = baseRoom('r1', 'Гостиная')
     useProjectStore.setState({ rooms: { r1: room }, roomOrder: ['r1'] })
     useEnclosureStore.getState().addEnclosure({
@@ -103,18 +127,20 @@ describe('EquipmentResultsTable', () => {
     })
 
     render(<EquipmentResultsTable />)
+    // Q_факт is computed after worker resolves qRequired
+    await waitFor(() => {
+      const cells = within(screen.getByTestId('results-row-r1')).getAllByRole('cell')
+      expect(cells[4].textContent).not.toBe('—')
+    })
     const row = screen.getByTestId('results-row-r1')
     const cells = within(row).getAllByRole('cell')
 
     expect(cells[3].textContent).toMatch(/Rifar Base 500 × \d+ секц\./)
-    // Q_факт (cell 4) must be a number (not "—")
-    expect(cells[4].textContent).not.toBe('—')
     expect(parseFloat(cells[4].textContent ?? '0')).toBeGreaterThan(0)
-    // tп-tо format
     expect(cells[2].textContent).toBe('80-60')
   })
 
-  it('aggregates Σ Q_пом and Σ Q_факт across multiple rooms', () => {
+  it('aggregates Σ Q_пом and Σ Q_факт across multiple rooms', async () => {
     const r1 = baseRoom('r1', 'Комната 1', 20)
     const r2 = baseRoom('r2', 'Комната 2', 25)
     useProjectStore.setState({ rooms: { r1, r2 }, roomOrder: ['r1', 'r2'] })
@@ -153,14 +179,17 @@ describe('EquipmentResultsTable', () => {
 
     render(<EquipmentResultsTable />)
 
+    // Wait for worker to resolve qRequired for both rooms
+    await waitFor(() => {
+      expect(parseFloat(screen.getByTestId('sum-q-required').textContent ?? '0')).toBeGreaterThan(0)
+    })
+
     const sumQReq = parseFloat(screen.getByTestId('sum-q-required').textContent ?? '0')
     const sumQAct = parseFloat(screen.getByTestId('sum-q-actual').textContent ?? '0')
 
-    // Both rooms contribute — sums strictly positive
     expect(sumQReq).toBeGreaterThan(0)
     expect(sumQAct).toBeGreaterThan(0)
 
-    // Σ must equal sum of individual row values (within rounding tolerance)
     const row1Req = parseFloat(
       within(screen.getByTestId('results-row-r1')).getAllByRole('cell')[1].textContent ?? '0',
     )
@@ -170,7 +199,7 @@ describe('EquipmentResultsTable', () => {
     expect(Math.abs(sumQReq - (row1Req + row2Req))).toBeLessThanOrEqual(1)
   })
 
-  it('marks a row insufficient when manual Q_nominal cannot cover Q_required', () => {
+  it('marks a row insufficient when manual Q_nominal cannot cover Q_required', async () => {
     // Tiny room with big enclosure → high Q_required.
     // Manual equipment with low Q_ном can't cover it.
     const room = baseRoom('r1', 'Холодная', 40)
@@ -206,8 +235,9 @@ describe('EquipmentResultsTable', () => {
     })
 
     render(<EquipmentResultsTable />)
-    const row = screen.getByTestId('results-row-r1')
-    expect(row.getAttribute('data-insufficient')).toBe('true')
-    expect(row.className).toContain('--color-destructive')
+    await waitFor(() =>
+      expect(screen.getByTestId('results-row-r1').getAttribute('data-insufficient')).toBe('true')
+    )
+    expect(screen.getByTestId('results-row-r1').className).toContain('--color-destructive')
   })
 })

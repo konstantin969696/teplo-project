@@ -7,10 +7,9 @@
  * Footer: Σ Q_пом / Σ Q_факт across all rooms.
  */
 
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type {
   CatalogModel,
-  Enclosure,
   Equipment,
   Room,
 } from '../../types/project'
@@ -18,7 +17,7 @@ import { useProjectStore } from '../../store/projectStore'
 import { useEnclosureStore } from '../../store/enclosureStore'
 import { useEquipmentStore } from '../../store/equipmentStore'
 import { useCatalogStore } from '../../store/catalogStore'
-import { calculateRoomTotals } from '../../engine/heatLoss'
+import { getEngineWorker } from '../../workers/useEngineWorker'
 import { calculateLMTD } from '../../engine/equipment'
 import { deriveEquipmentQActual, formatSurplusPct } from './equipment-help'
 import { ColumnHint } from '../ColumnHint'
@@ -59,18 +58,12 @@ function describeOne(
 
 function computeRow(
   room: Room,
-  enclosures: readonly Enclosure[],
-  tOutside: number | null,
+  qRequired: number | null,
   tSupply: number,
   tReturn: number,
   roomEquipment: readonly Equipment[],
   models: Record<string, CatalogModel>,
 ): Row {
-  const deltaT = tOutside !== null ? room.tInside - tOutside : null
-  const qRequired =
-    deltaT !== null && deltaT > 0
-      ? calculateRoomTotals(enclosures, room, deltaT).qTotal
-      : null
   const lmtd = calculateLMTD(tSupply, tReturn, room.tInside)
   const tDelta = `${tSupply}-${tReturn}`
 
@@ -136,30 +129,42 @@ export function EquipmentResultsTable() {
 
   const models = useCatalogStore(s => s.models)
 
+  const [roomQMap, setRoomQMap] = useState<Readonly<Record<string, number | null>>>({})
+
+  useEffect(() => {
+    if (tOutside === null) { setRoomQMap({}); return }
+    let cancelled = false
+    getEngineWorker()
+      .heatLossForRooms(enclosuresAll, enclosureOrder, rooms, roomOrder, tOutside)
+      .then(results => {
+        if (!cancelled) {
+          const map: Record<string, number | null> = {}
+          roomOrder.forEach((rid, i) => { map[rid] = results[i]?.qTotal ?? null })
+          setRoomQMap(map)
+        }
+      })
+    return () => { cancelled = true }
+  }, [tOutside, enclosuresAll, enclosureOrder, rooms, roomOrder])
+
   const rowData = useMemo<readonly Row[]>(() => {
     return roomOrder
       .map(rid => {
         const room = rooms[rid]
         if (!room) return null
-        const enclosures: Enclosure[] = enclosureOrder
-          .filter(eid => enclosuresAll[eid]?.roomId === rid)
-          .map(eid => enclosuresAll[eid])
-          .filter((e): e is Enclosure => e != null)
         const roomEquipment: Equipment[] = equipmentOrder
           .map(eid => equipmentAll[eid])
           .filter((e): e is Equipment => e != null && e.roomId === rid)
-        return computeRow(room, enclosures, tOutside, tSupply, tReturn, roomEquipment, models)
+        const qRequired = roomQMap[rid] ?? null
+        return computeRow(room, qRequired, tSupply, tReturn, roomEquipment, models)
       })
       .filter((r): r is Row => r !== null)
   }, [
     rooms,
     roomOrder,
-    enclosuresAll,
-    enclosureOrder,
+    roomQMap,
     equipmentAll,
     equipmentOrder,
     models,
-    tOutside,
     tSupply,
     tReturn,
   ])
