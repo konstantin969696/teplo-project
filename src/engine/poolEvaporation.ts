@@ -70,6 +70,7 @@ export function calculatePoolEvaporationHeat(
   tAir: number
 ): number {
   if (!pool?.enabled) return 0
+  if (!Number.isFinite(pool.tWaterC) || !Number.isFinite(pool.phi) || !Number.isFinite(pool.fMirrorM2)) return 0
   const beta = BETA_BY_MODE[pool.mode]
   const pSat = calculateSaturatedVaporPressure(pool.tWaterC)
   const pPartial = calculatePartialVaporPressure(tAir, pool.phi)

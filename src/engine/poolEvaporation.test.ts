@@ -108,6 +108,18 @@ describe('calculatePoolEvaporationHeat', () => {
     expect(calculatePoolEvaporationHeat({ ...basePool, tWaterC: 20, phi: 0.9 }, 35)).toBe(0)
   })
 
+  it('tWaterC = NaN → 0 (NaN guard)', () => {
+    expect(calculatePoolEvaporationHeat({ ...basePool, tWaterC: NaN }, 28)).toBe(0)
+  })
+
+  it('phi = NaN → 0 (NaN guard)', () => {
+    expect(calculatePoolEvaporationHeat({ ...basePool, phi: NaN }, 28)).toBe(0)
+  })
+
+  it('fMirrorM2 = NaN → 0 (NaN guard)', () => {
+    expect(calculatePoolEvaporationHeat({ ...basePool, fMirrorM2: NaN }, 28)).toBe(0)
+  })
+
   it('idle mode uses β=0.05 → ~25× less than active', () => {
     const qActive = calculatePoolEvaporationHeat(basePool, 28)
     const qIdle = calculatePoolEvaporationHeat({ ...basePool, mode: 'idle' }, 28)
