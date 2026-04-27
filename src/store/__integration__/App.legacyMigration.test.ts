@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest'
-import { runRegistryMigration } from '../../services/projectSnapshot'
+import { runRegistryMigration } from '../../services/registryMigration'
 import { useProjectStore, defaultProjectData } from '../../store/projectStore'
 import { useEnclosureStore } from '../../store/enclosureStore'
 import { useSystemStore } from '../../store/systemStore'

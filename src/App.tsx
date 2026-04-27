@@ -21,7 +21,7 @@ import { useSystemStore } from './store/systemStore'
 import { useSegmentStore } from './store/segmentStore'
 import { useEquipmentStore } from './store/equipmentStore'
 import { useUfhLoopStore } from './store/ufhLoopStore'
-import { runRegistryMigration } from './services/projectSnapshot'
+import { runRegistryMigration } from './services/registryMigration'
 
 const TAB_NAMES = ['Теплопотери', 'Приборы отопления', 'Гидравлика', 'Тёплый пол', 'Сводка'] as const
 

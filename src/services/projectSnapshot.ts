@@ -3,8 +3,9 @@
  * collectSnapshot — reads all 6 working stores into a ProjectSnapshot.
  * restoreSnapshot — writes a ProjectSnapshot back into the 6 working stores.
  * resetAllStores — clears all 6 working stores to their defaults.
- * runRegistryMigration — legacy migration: if registry is empty and working stores
- *   have data from before projects manager existed, registers them as "Проект 1".
+ *
+ * Note: runRegistryMigration lives in registryMigration.ts to avoid circular
+ * imports (projectsRegistryStore.ts imports this file).
  */
 
 import type { ProjectSnapshot } from '../types/project'
@@ -14,7 +15,6 @@ import { useSystemStore, defaultSystemData } from '../store/systemStore'
 import { useSegmentStore, defaultSegmentData } from '../store/segmentStore'
 import { useEquipmentStore, defaultEquipmentData } from '../store/equipmentStore'
 import { useUfhLoopStore, defaultUfhLoopData } from '../store/ufhLoopStore'
-import { useProjectsRegistryStore } from '../store/projectsRegistryStore'
 
 export function collectSnapshot(): ProjectSnapshot {
   const p = useProjectStore.getState()
@@ -75,22 +75,3 @@ export function resetAllStores(): void {
   useUfhLoopStore.setState(defaultUfhLoopData as Parameters<typeof useUfhLoopStore.setState>[0])
 }
 
-/**
- * Legacy migration: if the projects registry is empty but the working stores
- * already contain data (project created before the projects manager existed),
- * register that data as "Проект 1" so it appears in the UI.
- * Idempotent — does nothing if registry already has projects.
- */
-export function runRegistryMigration(): void {
-  const registry = useProjectsRegistryStore.getState()
-  if (registry.projectOrder.length > 0) return
-
-  const hasLegacyData =
-    Object.keys(useProjectStore.getState().rooms).length > 0 ||
-    Object.keys(useEnclosureStore.getState().enclosures).length > 0 ||
-    Object.keys(useSystemStore.getState().systems).length > 0
-
-  if (hasLegacyData) {
-    registry.createProject('Проект 1')
-  }
-}

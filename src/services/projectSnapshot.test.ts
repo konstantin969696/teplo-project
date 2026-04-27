@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { collectSnapshot, restoreSnapshot, resetAllStores, runRegistryMigration } from './projectSnapshot'
+import { collectSnapshot, restoreSnapshot, resetAllStores } from './projectSnapshot'
+import { runRegistryMigration } from './registryMigration'
 import { useProjectStore, defaultProjectData } from '../store/projectStore'
 import { useEnclosureStore, defaultEnclosureData } from '../store/enclosureStore'
 import { useSystemStore, defaultSystemData } from '../store/systemStore'

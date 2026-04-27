@@ -128,10 +128,14 @@ describe('useProjectsRegistryStore', () => {
       expect(projectOrder).toContain(id2)
     })
 
-    it('sets activeId to null when deleting the only project', () => {
+    it('auto-creates "Проект 1" and sets it active when deleting the only project', () => {
       const id = useProjectsRegistryStore.getState().createProject('Единственный')
       useProjectsRegistryStore.getState().deleteProject(id)
-      expect(useProjectsRegistryStore.getState().activeId).toBeNull()
+      const { projects, projectOrder, activeId } = useProjectsRegistryStore.getState()
+      expect(projectOrder).toHaveLength(1)
+      expect(activeId).toBe(projectOrder[0])
+      expect(projects[projectOrder[0]].name).toBe('Проект 1')
+      expect(projects[id]).toBeUndefined()
     })
 
     it('switches activeId to next project when active deleted', () => {
