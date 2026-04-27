@@ -174,7 +174,7 @@ export function UfhLoopDetails({
             </div>
             {targetTooLow && (
               <p className="text-xs text-[var(--color-warning)]">
-                Значение ≤ t_воздуха ({room.tInside}°C) — цель недостижима
+                Значение ≤ t_воздуха ({room.tInside}°C) — теплоотдача пола = 0, контур не выдаёт тепло. Установите t_пола минимум на 1–2°C выше воздуха.
               </p>
             )}
             <p className="text-xs text-[var(--color-text-secondary)]">

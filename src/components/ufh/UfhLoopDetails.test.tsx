@@ -214,12 +214,13 @@ describe('UfhLoopDetails — Phase 3: mode switcher', () => {
     expect(useUfhLoopStore.getState().loops[loopId].targetFloorTempC).toBeNull()
   })
 
-  it('предупреждение "цель недостижима" при targetFloorTempC ≤ tRoom', () => {
+  it('предупреждение про теплоотдачу пола при targetFloorTempC ≤ tRoom', () => {
     const sysId = setupSystem()
     // ROOM.tInside=25, targetFloorTempC=22 → targetTooLow=true
     const loop = makeLoop(sysId, { mode: 'comfort', targetFloorTempC: 22 })
     render(<UfhLoopDetails {...COMMON_PROPS} room={ROOM} loop={loop} />)
-    expect(screen.getByText(/цель недостижима/i)).toBeInTheDocument()
+    expect(screen.getByText(/теплоотдача пола = 0/i)).toBeInTheDocument()
+    expect(screen.getByText(/контур не выдаёт тепло/i)).toBeInTheDocument()
   })
 
   it('подсказка "Контур не учитывается" показывается при mode=comfort', () => {
