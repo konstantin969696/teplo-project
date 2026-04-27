@@ -19,10 +19,10 @@
  *   T-04-17: handleAreaCommit clamps F_тп to [0, room.area].
  */
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { ChevronRight, AlertTriangle } from 'lucide-react'
-import type { Room } from '../../types/project'
+import type { Enclosure, Room } from '../../types/project'
 import type { FloorCovering } from '../../types/hydraulics'
 import { useUfhLoopStore, selectLoopByRoom } from '../../store/ufhLoopStore'
 import { useProjectStore } from '../../store/projectStore'
@@ -31,7 +31,7 @@ import { usePipeCatalogStore } from '../../store/pipeCatalogStore'
 import { useEnclosureStore, selectEnclosuresByRoom } from '../../store/enclosureStore'
 import { useUfhSystemTemps } from '../../hooks/useUfhSystemTemps'
 import { calculateHeatFlux, calculateFloorTemp } from '../../engine/ufh'
-import { calculateRoomTotals } from '../../engine/heatLoss'
+import { getEngineWorker } from '../../workers/useEngineWorker'
 import {
   COVERING_LABELS,
   INPUT_CLASS,
@@ -105,33 +105,41 @@ export function UfhLoopRow({ room, index }: UfhLoopRowProps) {
     }
   }
 
-  // Derived q / Q_тп / t_пол / Q_пом — T-04-16: useMemo guards re-computation
-  const { qPerM2, qTpW, floorTempC, qRoomW } = useMemo(() => {
+  // Sync: qPerM2, qTpW, floorTempC — не требуют calculateRoomTotals
+  const { qPerM2, qTpW, floorTempC } = useMemo(() => {
     const effectiveCovering = loop?.covering ?? 'tile'
     const effectiveArea = loop?.activeAreaM2 ?? defaultAreaM2
     const isEnabled = loop?.enabled ?? false
 
-    // qPerM2 считается всегда (preview для выключенной петли — видно эффект смены покрытия/темп).
     const q = calculateHeatFlux(tSupplyUfh, tReturnUfh, room.tInside, effectiveCovering)
     const tFloor = calculateFloorTemp(q, room.tInside)
+    if (!isEnabled) return { qPerM2: q, qTpW: 0, floorTempC: tFloor }
+    return { qPerM2: q, qTpW: q * effectiveArea, floorTempC: tFloor }
+  }, [loop, tSupplyUfh, tReturnUfh, room, defaultAreaM2])
 
-    if (!isEnabled) {
-      return { qPerM2: q, qTpW: 0, floorTempC: tFloor, qRoomW: 0 }
-    }
-
-    const qTotal = q * effectiveArea
-    const deltaT = tOutside !== null ? Math.max(0, room.tInside - tOutside) : 0
-    const qRoom = deltaT > 0 ? calculateRoomTotals(enclosures, room, deltaT).qTotal : 0
-
-    return { qPerM2: q, qTpW: qTotal, floorTempC: tFloor, qRoomW: qRoom }
-  }, [loop, tSupplyUfh, tReturnUfh, room, enclosures, tOutside, defaultAreaM2])
+  // Async: qRoomW — теплопотери комнаты через worker (нужны только для warn-условия qTpW < qRoomW)
+  const [qRoomW, setQRoomW] = useState<number | null>(null)
+  useEffect(() => {
+    const isEnabled = loop?.enabled ?? false
+    if (!isEnabled || tOutside === null) { setQRoomW(null); return }
+    const dt = Math.max(0, room.tInside - tOutside)
+    if (dt <= 0) { setQRoomW(null); return }
+    let cancelled = false
+    const enclosureRecord: Record<string, Enclosure> = {}
+    const enclosureIds: string[] = []
+    for (const e of enclosures) { enclosureRecord[e.id] = e; enclosureIds.push(e.id) }
+    getEngineWorker()
+      .heatLossForRooms(enclosureRecord, enclosureIds, { [room.id]: room }, [room.id], tOutside)
+      .then(([res]) => { if (!cancelled && res) setQRoomW(res.qTotal) })
+    return () => { cancelled = true }
+  }, [loop?.enabled, enclosures, room, tOutside])
 
   const threshold = floorTempThresholdC(room.name)
   const bathroom = isBathroomRoom(room.name)
   // Предупреждения — только для включённых петель (для preview q не имеет смысла).
   const hasWarning =
     loop?.enabled === true &&
-    ((qTpW > 0 && qRoomW > 0 && qTpW < qRoomW) || floorTempC > threshold)
+    ((qTpW > 0 && qRoomW !== null && qRoomW > 0 && qTpW < qRoomW) || floorTempC > threshold)
 
   const zebraClass = index % 2 === 0 ? 'bg-[var(--color-bg)]' : 'bg-[var(--color-surface)]'
 
