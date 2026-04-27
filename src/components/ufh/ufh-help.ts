@@ -6,6 +6,7 @@
 
 export { INPUT_CLASS } from '../equipment/equipment-help'
 import type { FloorCovering } from '../../types/hydraulics'
+import type { Room } from '../../types/project'
 
 export const COVERING_LABELS: Record<FloorCovering, string> = {
   tile:     'Плитка',
@@ -32,6 +33,16 @@ export function isBathroomRoom(roomName: string): boolean {
  */
 export function floorTempThresholdC(roomName: string): number {
   return isBathroomRoom(roomName) ? 33 : 29
+}
+
+/**
+ * Возвращает порог t_пола для конкретной комнаты.
+ * Если задан room.floorTempThresholdC — использует его,
+ * иначе — стандартный SP 60 по имени (29 / 33).
+ */
+export function resolveFloorThreshold(room: Room): number {
+  if (room.floorTempThresholdC != null) return room.floorTempThresholdC
+  return floorTempThresholdC(room.name)
 }
 
 /** Форматирует среднюю температуру пола. */

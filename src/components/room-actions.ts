@@ -61,6 +61,7 @@ export function addRoomsToFloor(floor: number, count: number): void {
       windSpeed: null,
       lVentilation: 0,
       tInside: tInsideDefault,
+      floorTempThresholdC: null,
     })
     // Re-read to include the just-added room for subsequent iterations
     runningRooms = useProjectStore.getState().rooms

@@ -35,8 +35,8 @@ import { getEngineWorker } from '../../workers/useEngineWorker'
 import {
   COVERING_LABELS,
   INPUT_CLASS,
-  floorTempThresholdC,
   isBathroomRoom,
+  resolveFloorThreshold,
   formatQPerM2,
 } from './ufh-help'
 import { PIPE_MATERIAL_LABELS } from '../hydraulics/hydraulics-help'
@@ -146,7 +146,7 @@ export function UfhLoopRow({ room, index }: UfhLoopRowProps) {
     return () => { cancelled = true }
   }, [loop?.enabled, enclosures, room, tOutside])
 
-  const threshold = floorTempThresholdC(room.name)
+  const threshold = resolveFloorThreshold(room)
   const bathroom = isBathroomRoom(room.name)
   // Предупреждения — только для включённых петель (для preview q не имеет смысла).
   const hasWarning =

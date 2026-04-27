@@ -118,7 +118,8 @@ export const useProjectStore = create<ProjectState>()(
             gapArea: (r.gapArea as number | null) ?? null,
             windSpeed: (r.windSpeed as number | null) ?? null,
             lVentilation: (r.lVentilation as number) ?? 0,
-            tInside: (r.tInside as number) ?? normalized.tInside ?? 20
+            tInside: (r.tInside as number) ?? normalized.tInside ?? 20,
+            floorTempThresholdC: typeof r.floorTempThresholdC === 'number' ? r.floorTempThresholdC : null,
           }
         }
         set({
@@ -186,21 +187,34 @@ export const useProjectStore = create<ProjectState>()(
     }),
     {
       name: 'teplo-project',
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => safeStorage),
       migrate: (persistedState, version) => {
+        const s = (persistedState as Record<string, unknown> | null) ?? {}
+        // Prototype pollution guard
+        if (Object.prototype.hasOwnProperty.call(s, '__proto__') ||
+            Object.prototype.hasOwnProperty.call(s, 'constructor')) {
+          return { ...defaultProjectData } as unknown as ProjectState
+        }
+        let result: Record<string, unknown> = s
+
         if (version < 2) {
-          const s = (persistedState as Record<string, unknown> | null) ?? {}
-          // Prototype pollution guard
-          if (Object.prototype.hasOwnProperty.call(s, '__proto__') ||
-              Object.prototype.hasOwnProperty.call(s, 'constructor')) {
-            return { ...defaultProjectData } as unknown as ProjectState
-          }
           // ONLY set schemaVersion. 7 legacy fields are preserved for runV11Migration.
           // clearLegacyV10Fields (called from App.tsx after migration) removes them.
-          return { ...s, schemaVersion: '1.1' } as unknown as ProjectState
+          result = { ...result, schemaVersion: '1.1' }
         }
-        return persistedState as ProjectState
+
+        if (version < 3) {
+          // Backfill floorTempThresholdC: null on all rooms.
+          const rooms = (result.rooms ?? {}) as Record<string, Record<string, unknown>>
+          const patchedRooms: Record<string, unknown> = {}
+          for (const [id, room] of Object.entries(rooms)) {
+            patchedRooms[id] = { floorTempThresholdC: null, ...room }
+          }
+          result = { ...result, rooms: patchedRooms }
+        }
+
+        return result as unknown as ProjectState
       },
       partialize: (state) => {
         const { activeTab: _omit, ...data } = state as unknown as Record<string, unknown>

@@ -25,6 +25,8 @@ export interface Room {
   readonly windSpeed: number | null   // м/с, used when method='gap'
   readonly lVentilation: number       // L_пр м³/ч, manual input, default 0
   readonly tInside: number            // °C расчётная температура помещения, default from global
+  /** Ручной порог t_пола (СП 60). null → авто: 29°C жилые / 33°C ванные. */
+  readonly floorTempThresholdC?: number | null
 }
 
 export type EnclosureType =
