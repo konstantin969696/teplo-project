@@ -132,8 +132,6 @@ export const useProjectStore = create<ProjectState>()(
 
         // Apply per-system data into dedicated stores (Phase 04.1 multi-store split)
         applyImportedStores(normalized as Record<string, unknown>)
-
-        toast.success('Проект загружен')
       },
 
       resetProject: () => set({ ...defaultProjectData }),
