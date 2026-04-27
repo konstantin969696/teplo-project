@@ -174,6 +174,38 @@ describe('UfhLoopRow', () => {
     expect(loops.length).toBeGreaterThan(0)
   })
 
+  it('бейджик "Комфортный режим ТП" показывается при mode=comfort', () => {
+    useUfhLoopStore.getState().addLoop({
+      roomId: 'test-room',
+      enabled: true,
+      activeAreaM2: 16,
+      covering: 'tile',
+      pipeId: 'pe-x-16-2',
+      stepCm: 20,
+      leadInM: 3,
+      mode: 'comfort',
+      targetFloorTempC: 30,
+    })
+    renderRow()
+    expect(screen.getByLabelText('Комфортный режим ТП')).toBeInTheDocument()
+  })
+
+  it('бейджик "Комфортный режим ТП" НЕ показывается при mode=heating', () => {
+    useUfhLoopStore.getState().addLoop({
+      roomId: 'test-room',
+      enabled: true,
+      activeAreaM2: 16,
+      covering: 'tile',
+      pipeId: 'pe-x-16-2',
+      stepCm: 20,
+      leadInM: 3,
+      mode: 'heating',
+      targetFloorTempC: null,
+    })
+    renderRow()
+    expect(screen.queryByLabelText('Комфортный режим ТП')).not.toBeInTheDocument()
+  })
+
   it('bathroom room uses 33°C threshold heuristic (isBathroomRoom)', () => {
     useUfhLoopStore.getState().addLoop({
       roomId: 'test-bathroom',

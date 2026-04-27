@@ -21,7 +21,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { useShallow } from 'zustand/react/shallow'
-import { ChevronRight, AlertTriangle } from 'lucide-react'
+import { ChevronRight, AlertTriangle, Sparkles } from 'lucide-react'
 import type { Enclosure, Room } from '../../types/project'
 import type { FloorCovering } from '../../types/hydraulics'
 import { useUfhLoopStore, selectLoopByRoom } from '../../store/ufhLoopStore'
@@ -30,7 +30,7 @@ import { useSystemStore, selectOrderedSystems } from '../../store/systemStore'
 import { usePipeCatalogStore } from '../../store/pipeCatalogStore'
 import { useEnclosureStore, selectEnclosuresByRoom } from '../../store/enclosureStore'
 import { useUfhSystemTemps } from '../../hooks/useUfhSystemTemps'
-import { calculateHeatFlux, calculateFloorTemp } from '../../engine/ufh'
+import { calculateHeatFlux, calculateFloorTemp, calculateRequiredCoolantMeanTemp } from '../../engine/ufh'
 import { getEngineWorker } from '../../workers/useEngineWorker'
 import {
   COVERING_LABELS,
@@ -106,15 +106,27 @@ export function UfhLoopRow({ room, index }: UfhLoopRowProps) {
   }
 
   // Sync: qPerM2, qTpW, floorTempC — не требуют calculateRoomTotals
-  const { qPerM2, qTpW, floorTempC } = useMemo(() => {
+  const { qPerM2, qTpW, floorTempC, tSupplyEff, tReturnEff } = useMemo(() => {
     const effectiveCovering = loop?.covering ?? 'tile'
     const effectiveArea = loop?.activeAreaM2 ?? defaultAreaM2
     const isEnabled = loop?.enabled ?? false
 
-    const q = calculateHeatFlux(tSupplyUfh, tReturnUfh, room.tInside, effectiveCovering)
+    // Comfort mode: подбираем t_теплоносителя через обратную задачу (UFH-08).
+    let tSup = tSupplyUfh
+    let tRet = tReturnUfh
+    if (loop?.mode === 'comfort' && loop.targetFloorTempC != null) {
+      const tMean = calculateRequiredCoolantMeanTemp(loop.targetFloorTempC, room.tInside, effectiveCovering)
+      if (tMean !== null) {
+        const dt = Math.max(1, tSupplyUfh - tReturnUfh)
+        tSup = tMean + dt / 2
+        tRet = tMean - dt / 2
+      }
+    }
+
+    const q = calculateHeatFlux(tSup, tRet, room.tInside, effectiveCovering)
     const tFloor = calculateFloorTemp(q, room.tInside)
-    if (!isEnabled) return { qPerM2: q, qTpW: 0, floorTempC: tFloor }
-    return { qPerM2: q, qTpW: q * effectiveArea, floorTempC: tFloor }
+    if (!isEnabled) return { qPerM2: q, qTpW: 0, floorTempC: tFloor, tSupplyEff: tSup, tReturnEff: tRet }
+    return { qPerM2: q, qTpW: q * effectiveArea, floorTempC: tFloor, tSupplyEff: tSup, tReturnEff: tRet }
   }, [loop, tSupplyUfh, tReturnUfh, room, defaultAreaM2])
 
   // Async: qRoomW — теплопотери комнаты через worker (нужны только для warn-условия qTpW < qRoomW)
@@ -181,6 +193,14 @@ export function UfhLoopRow({ room, index }: UfhLoopRowProps) {
             <span className="text-sm text-[var(--color-text-primary)]">
               {room.name}
             </span>
+            {loop?.mode === 'comfort' && (
+              <Sparkles
+                size={12}
+                className="text-[var(--color-accent)] flex-shrink-0"
+                aria-label="Комфортный режим ТП"
+                title={`Комфортный режим: t_пола = ${loop.targetFloorTempC ?? '?'}°C`}
+              />
+            )}
           </label>
         </td>
         <td className="px-2 py-1 text-right">
@@ -301,6 +321,8 @@ export function UfhLoopRow({ room, index }: UfhLoopRowProps) {
               qRoomW={qRoomW}
               threshold={threshold}
               isBathroom={bathroom}
+              tSupplyEff={tSupplyEff}
+              tReturnEff={tReturnEff}
             />
           </td>
         </tr>

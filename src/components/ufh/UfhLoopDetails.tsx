@@ -10,6 +10,9 @@
  * Phase 04.1 Plan 06: per-system источники данных (D-14).
  *   - tSupplyUfh/tReturnUfh → useUfhSystemTemps(loop.id)
  *   - coolantId → из HeatingSystem, привязанной к loop.systemId
+ *
+ * Phase comfort-ufh: если переданы tSupplyEff/tReturnEff — используются вместо
+ * системных (computed from inverse problem in UfhLoopRow).
  */
 
 import { FormulaAudit } from '../heatLoss/FormulaAudit'
@@ -36,9 +39,13 @@ interface UfhLoopDetailsProps {
   readonly qPerM2: number
   readonly qTpW: number
   readonly floorTempC: number
-  readonly qRoomW: number
+  readonly qRoomW: number | null
   readonly threshold: number
   readonly isBathroom: boolean
+  /** Effective supply temp for this loop (comfort mode: computed from inverse problem). */
+  readonly tSupplyEff?: number
+  /** Effective return temp for this loop (comfort mode: computed from inverse problem). */
+  readonly tReturnEff?: number
 }
 
 export function UfhLoopDetails({
@@ -50,12 +57,18 @@ export function UfhLoopDetails({
   qRoomW,
   threshold,
   isBathroom,
+  tSupplyEff,
+  tReturnEff,
 }: UfhLoopDetailsProps) {
   const pipe = usePipeCatalogStore(s => s.pipes[loop.pipeId])
   // Per-system: берём coolant из системы, к которой привязан loop.
   const system = useSystemStore(s => s.systems[loop.systemId])
   const coolant = useCoolantCatalogStore(s => (system ? s.coolants[system.coolantId] : undefined))
-  const { tSupply: tSupplyUfh, tReturn: tReturnUfh } = useUfhSystemTemps(loop.id)
+  const { tSupply: tSupplySystem, tReturn: tReturnSystem } = useUfhSystemTemps(loop.id)
+
+  // Effective temps: from comfort inverse problem (if provided) or system defaults.
+  const tSup = tSupplyEff ?? tSupplySystem
+  const tRet = tReturnEff ?? tReturnSystem
 
   if (!pipe || !coolant) {
     return (
@@ -72,11 +85,11 @@ export function UfhLoopDetails({
   // Иначе при большой площади (бассейн, склад) ΔP уходит в кубические нелинейности (≈100 МПа).
   const qPerLoop = loopCount > 0 ? qTpW / loopCount : qTpW
   const lengthPerLoop = loopCount > 0 ? loopLengthM / loopCount : loopLengthM
-  const hydr = calculateLoopHydraulics(qPerLoop, tSupplyUfh, tReturnUfh, pipe, coolant, lengthPerLoop)
+  const hydr = calculateLoopHydraulics(qPerLoop, tSup, tRet, pipe, coolant, lengthPerLoop)
 
   const auditString = buildUfhAuditString(
-    tSupplyUfh,
-    tReturnUfh,
+    tSup,
+    tRet,
     room.tInside,
     loop.covering,
     loop.activeAreaM2,
@@ -88,12 +101,36 @@ export function UfhLoopDetails({
     loopCount,
   )
 
+  const isComfort = loop.mode === 'comfort' && loop.targetFloorTempC != null
+  const comfortTempsAdjusted = isComfort && tSupplyEff != null
+
   return (
     <div className="p-3 bg-[var(--color-surface)] border-b border-[var(--color-border)] text-sm">
+      {/* Comfort-mode info banner */}
+      {isComfort && (
+        <div className="mb-3 px-3 py-2 rounded-md bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/30 text-xs text-[var(--color-text-primary)]">
+          {comfortTempsAdjusted ? (
+            <>
+              Комфорт-режим: подобрано{' '}
+              <span className="font-mono font-semibold">{tSup.toFixed(1)}/{tRet.toFixed(1)}°C</span>{' '}
+              для t_пола{' '}
+              <span className="font-mono font-semibold">{loop.targetFloorTempC}°C</span>
+            </>
+          ) : (
+            <span className="text-[var(--color-destructive)]">
+              Комфорт-режим: невозможно — целевая t_пола ({loop.targetFloorTempC}°C) ≤ t_воздуха ({room.tInside}°C). Используются системные температуры.
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-4 gap-4 mb-3 font-mono text-xs">
         <div>
           <span className="text-[var(--color-text-secondary)]"><ColumnHint label="t_пол_ср:" hint={UFH_HINTS.t_floor} /> </span>
-          {formatFloorTemp(floorTempC)}°C{' '}
+          {isComfort && loop.targetFloorTempC != null && comfortTempsAdjusted
+            ? <span className="font-semibold">{loop.targetFloorTempC.toFixed(1)}</span>
+            : formatFloorTemp(floorTempC)
+          }°C{' '}
           <span className="text-[var(--color-text-secondary)]">(≤ {threshold}°C)</span>
         </div>
         <div>
