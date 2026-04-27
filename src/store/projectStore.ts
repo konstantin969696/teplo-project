@@ -16,6 +16,7 @@ import { clampTemperature } from '../engine/climate'
 import { migrateV10toV11Json } from '../engine/migration'
 import { safeStorage } from './safeStorage'
 import { applyImportedStores } from '../services/importService'
+import { collectExportData } from '../services/exportService'
 import { uuid } from './uuid'
 import { toast } from 'sonner'
 
@@ -53,8 +54,7 @@ export const useProjectStore = create<ProjectState>()(
       }, true),
 
       exportJSON: () => {
-        const { city, tInside, rooms, roomOrder, customCities, schemaVersion } = get()
-        const data: ProjectData = { city, tInside, rooms, roomOrder, customCities, schemaVersion }
+        const data = collectExportData()
         const date = new Date()
         const dd = String(date.getDate()).padStart(2, '0')
         const mm = String(date.getMonth() + 1).padStart(2, '0')
