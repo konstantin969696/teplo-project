@@ -36,6 +36,7 @@ import { useProjectStore } from '../../store/projectStore'
 import { useEnclosureStore } from '../../store/enclosureStore'
 import { useEquipmentStore } from '../../store/equipmentStore'
 import { useCatalogStore } from '../../store/catalogStore'
+import { useSystemStore } from '../../store/systemStore'
 import type { Room } from '../../types/project'
 
 let roomNumberCounter = 100
@@ -65,11 +66,10 @@ beforeEach(() => {
     rooms: {},
     roomOrder: [],
     customCities: [],
-    tSupply: 80,
-    tReturn: 60,
   })
   useEnclosureStore.setState({ enclosures: {}, enclosureOrder: [] })
   useEquipmentStore.setState({ equipment: {}, equipmentOrder: [] })
+  useSystemStore.setState({ systems: {}, systemOrder: [] })
   useCatalogStore.getState().resetToSeed()
 })
 
@@ -239,5 +239,70 @@ describe('EquipmentResultsTable', () => {
       expect(screen.getByTestId('results-row-r1').getAttribute('data-insufficient')).toBe('true')
     )
     expect(screen.getByTestId('results-row-r1').className).toContain('--color-destructive')
+  })
+})
+
+describe('EquipmentResultsTable — per-system LMTD (F01/F15)', () => {
+  it('приборы из разных систем используют свои tSupply/tReturn', async () => {
+    const rHot = baseRoom('r-hot', 'Горячая', 20)
+    const rCool = baseRoom('r-cool', 'Холодная', 20)
+    useProjectStore.setState({
+      rooms: { 'r-hot': rHot, 'r-cool': rCool },
+      roomOrder: ['r-hot', 'r-cool'],
+    })
+
+    // Identical enclosures → identical Q_required
+    for (const rid of ['r-hot', 'r-cool']) {
+      useEnclosureStore.getState().addEnclosure({
+        roomId: rid, type: 'wall-ext', orientation: 'С', area: 12,
+        kValue: 0.35, nCoeff: 1.0, nOverridden: false,
+        adjacentRoomName: null, tAdjacent: null, perimeterOverride: null,
+        zoneR: [2.1, 4.3, 8.6, 14.2], parentEnclosureId: null, constructionId: null,
+      })
+    }
+
+    // Two systems with different temperatures
+    const sys1Id = useSystemStore.getState().addSystem({
+      name: 'Горячая 90/70', schemaType: 'two-pipe-dead-end',
+      pipeMaterialId: 'pe-x-16-2', coolantId: 'water',
+      tSupply: 90, tReturn: 70, tSupplyUfh: 45, tReturnUfh: 35, sourceLabel: '',
+    })
+    const sys2Id = useSystemStore.getState().addSystem({
+      name: 'Тёплая 55/45', schemaType: 'two-pipe-dead-end',
+      pipeMaterialId: 'pe-x-16-2', coolantId: 'water',
+      tSupply: 55, tReturn: 45, tSupplyUfh: 45, tReturnUfh: 35, sourceLabel: '',
+    })
+
+    // Fixed sections so Q_факт depends only on LMTD
+    useEquipmentStore.getState().addEquipment({
+      roomId: 'r-hot', systemId: sys1Id,
+      kind: 'bimetal', catalogModelId: 'rifar-base-500', connection: 'side',
+      installation: 'open', panelType: null, panelHeightMm: null, panelLengthMm: null,
+      sectionsOverride: 5, convectorLengthMm: null, manualQNominal: null, manualNExponent: null,
+    })
+    useEquipmentStore.getState().addEquipment({
+      roomId: 'r-cool', systemId: sys2Id,
+      kind: 'bimetal', catalogModelId: 'rifar-base-500', connection: 'side',
+      installation: 'open', panelType: null, panelHeightMm: null, panelLengthMm: null,
+      sectionsOverride: 5, convectorLengthMm: null, manualQNominal: null, manualNExponent: null,
+    })
+
+    render(<EquipmentResultsTable />)
+    await waitFor(() => {
+      expect(within(screen.getByTestId('results-row-r-hot')).getAllByRole('cell')[4].textContent).not.toBe('—')
+      expect(within(screen.getByTestId('results-row-r-cool')).getAllByRole('cell')[4].textContent).not.toBe('—')
+    })
+
+    const hotCells = within(screen.getByTestId('results-row-r-hot')).getAllByRole('cell')
+    const coolCells = within(screen.getByTestId('results-row-r-cool')).getAllByRole('cell')
+
+    // tDelta column reflects each system's temperatures
+    expect(hotCells[2].textContent).toBe('90-70')
+    expect(coolCells[2].textContent).toBe('55-45')
+
+    // Higher LMTD (90/70) → higher Q_факт with same 5 sections
+    const qHot = parseFloat(hotCells[4].textContent ?? '0')
+    const qCool = parseFloat(coolCells[4].textContent ?? '0')
+    expect(qHot).toBeGreaterThan(qCool)
   })
 })

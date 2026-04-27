@@ -13,10 +13,12 @@ import type {
   Equipment,
   Room,
 } from '../../types/project'
+import type { HeatingSystem } from '../../types/system'
 import { useProjectStore } from '../../store/projectStore'
 import { useEnclosureStore } from '../../store/enclosureStore'
 import { useEquipmentStore } from '../../store/equipmentStore'
 import { useCatalogStore } from '../../store/catalogStore'
+import { useSystemStore } from '../../store/systemStore'
 import { getEngineWorker } from '../../workers/useEngineWorker'
 import { calculateLMTD } from '../../engine/equipment'
 import { deriveEquipmentQActual, formatSurplusPct } from './equipment-help'
@@ -59,20 +61,16 @@ function describeOne(
 function computeRow(
   room: Room,
   qRequired: number | null,
-  tSupply: number,
-  tReturn: number,
   roomEquipment: readonly Equipment[],
   models: Record<string, CatalogModel>,
+  systemsMap: Record<string, HeatingSystem>,
 ): Row {
-  const lmtd = calculateLMTD(tSupply, tReturn, room.tInside)
-  const tDelta = `${tSupply}-${tReturn}`
-
   if (roomEquipment.length === 0) {
     return {
       roomId: room.id,
       roomName: room.name,
       qRequired,
-      tDelta,
+      tDelta: '—',
       typeSize: '—',
       qActual: null,
       equipmentCount: 0,
@@ -81,6 +79,12 @@ function computeRow(
     }
   }
 
+  // tDelta display: use first equipment's system temps, fall back to 80/60
+  const firstSys = roomEquipment[0].systemId ? systemsMap[roomEquipment[0].systemId] : undefined
+  const displayTSup = firstSys?.tSupply ?? 80
+  const displayTRet = firstSys?.tReturn ?? 60
+  const tDelta = `${displayTSup}-${displayTRet}`
+
   // Split target load across equipment for sectional auto-pick
   const target = qRequired !== null ? qRequired / roomEquipment.length : null
 
@@ -88,6 +92,10 @@ function computeRow(
   let anyValid = false
   const parts: string[] = []
   for (const eq of roomEquipment) {
+    const sys = eq.systemId ? systemsMap[eq.systemId] : undefined
+    const tSup = sys?.tSupply ?? 80
+    const tRet = sys?.tReturn ?? 60
+    const lmtd = calculateLMTD(tSup, tRet, room.tInside)
     const model = eq.catalogModelId ? models[eq.catalogModelId] ?? null : null
     const { qActual, sectionsAccepted } = deriveEquipmentQActual(eq, model, target, lmtd)
     if (qActual !== null) {
@@ -118,8 +126,6 @@ export function EquipmentResultsTable() {
   const rooms = useProjectStore(s => s.rooms)
   const roomOrder = useProjectStore(s => s.roomOrder)
   const tOutside = useProjectStore(s => s.city?.tOutside ?? null)
-  const tSupply = useProjectStore(s => s.tSupply ?? 80)
-  const tReturn = useProjectStore(s => s.tReturn ?? 60)
 
   const enclosuresAll = useEnclosureStore(s => s.enclosures)
   const enclosureOrder = useEnclosureStore(s => s.enclosureOrder)
@@ -128,6 +134,7 @@ export function EquipmentResultsTable() {
   const equipmentOrder = useEquipmentStore(s => s.equipmentOrder)
 
   const models = useCatalogStore(s => s.models)
+  const systemsMap = useSystemStore(s => s.systems)
 
   const [roomQMap, setRoomQMap] = useState<Readonly<Record<string, number | null>>>({})
 
@@ -155,7 +162,7 @@ export function EquipmentResultsTable() {
           .map(eid => equipmentAll[eid])
           .filter((e): e is Equipment => e != null && e.roomId === rid)
         const qRequired = roomQMap[rid] ?? null
-        return computeRow(room, qRequired, tSupply, tReturn, roomEquipment, models)
+        return computeRow(room, qRequired, roomEquipment, models, systemsMap)
       })
       .filter((r): r is Row => r !== null)
   }, [
@@ -165,8 +172,7 @@ export function EquipmentResultsTable() {
     equipmentAll,
     equipmentOrder,
     models,
-    tSupply,
-    tReturn,
+    systemsMap,
   ])
 
   const { sumQRequired, sumQActual } = useMemo(() => {
