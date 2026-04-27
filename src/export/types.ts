@@ -71,6 +71,44 @@ export interface Stamp {
 export type StampMode = 'full' | 'minimal-footer' | 'none'
 
 /**
+ * Параметры основной надписи для текстовых документов (ГОСТ Р 21.101-2020 форма 5/6).
+ * Используется вместо `Stamp` когда `DocumentModel.gostStamp` задан.
+ * Идентичен `Stamp` по полям — выделен отдельным типом для clarity и будущих расхождений.
+ */
+export interface GostStampParams {
+  readonly objectName: string
+  readonly objectCode: string
+  readonly subsectionCode: string
+  readonly stageCode: string
+  readonly markCode: string
+  readonly drawingTitle: string
+  readonly drawingMark: string
+
+  readonly authorName: string
+  readonly checkerName: string
+  readonly gipName: string
+  readonly normControlName: string
+  readonly approverName: string
+
+  readonly companyName: string
+  readonly companyDept: string
+  readonly logoDataUrl?: string
+
+  readonly date: string
+  readonly signDates?: {
+    readonly author?: string
+    readonly checker?: string
+    readonly gip?: string
+    readonly normControl?: string
+    readonly approver?: string
+  }
+
+  readonly agreedBy?: string
+  readonly inventoryNumber?: string
+  readonly replacedInventoryNumber?: string
+}
+
+/**
  * Шрифт для PDF-экспорта.
  *  - 'roboto' — обычный sans-serif с кириллицей (Roboto Regular/Bold)
  *  - 'gost'   — чертёжный ГОСТ 2.304 (GOST type A italic)
@@ -128,6 +166,8 @@ export interface DocumentModel {
   readonly stampMode?: StampMode       // default 'full'
   readonly footerLine?: string         // используется при stampMode='minimal-footer' («Приложение Б»)
   readonly content: readonly ContentBlock[]
+  /** Если задан — используется штамп формы 5/6 (текстовый документ) вместо формы 1 (чертёж). */
+  readonly gostStamp?: GostStampParams
 }
 
 export interface Sheet {

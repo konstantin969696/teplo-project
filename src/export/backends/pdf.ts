@@ -25,6 +25,9 @@ import {
   buildDesignationCode,
   signerDate
 } from '../sheet/stamp'
+import { drawStampForm5 } from '../gost/drawStamp5'
+import { drawStampForm6 } from '../gost/drawStamp6'
+import { STAMP_FORM5_HEIGHT_MM, STAMP_FORM6_HEIGHT_MM } from '../gost/stampGeometry'
 import { loadFontFamily, type LoadedFontFamily } from './fontLoader'
 import type {
   ContentBlock,
@@ -117,8 +120,24 @@ function drawSheet(doc: jsPDF, model: DocumentModel, sheet: Sheet, fontName: str
   const contentX = frame.xMm + CONTENT_PAD_MM
   const contentY = frame.yMm + CONTENT_PAD_MM
   const contentW = frame.widthMm - CONTENT_PAD_MM * 2
-  const contentMaxY = computeContentMaxY(model, frame.yMm + frame.heightMm)
+  const contentMaxY = computeContentMaxY(model, frame.yMm + frame.heightMm, sheet.index)
   drawContent(doc, sheet.blocks, contentX, contentY, contentW, contentMaxY, fontName)
+
+  // Текстовый документ (gostStamp): форма 5 на первом листе, форма 6 — на последующих
+  if (model.gostStamp) {
+    drawFormatMark(doc, model, frame, fontName, dims.widthMm, dims.heightMm)
+    const stampH = sheet.index === 0 ? STAMP_FORM5_HEIGHT_MM : STAMP_FORM6_HEIGHT_MM
+    const stampPos = {
+      xMm: frame.xMm + frame.widthMm - 185,
+      yMm: frame.yMm + frame.heightMm - stampH,
+    }
+    if (sheet.index === 0) {
+      drawStampForm5(doc, model.gostStamp, stampPos, sheet.index, sheet.total, fontName)
+    } else {
+      drawStampForm6(doc, model.gostStamp, stampPos, sheet.index, sheet.total, fontName)
+    }
+    return
+  }
 
   // Маркировка формата (для full и minimal-footer; для none — нет)
   if (mode !== 'none') {
@@ -134,7 +153,11 @@ function drawSheet(doc: jsPDF, model: DocumentModel, sheet: Sheet, fontName: str
   }
 }
 
-function computeContentMaxY(model: DocumentModel, frameBottomY: number): number {
+function computeContentMaxY(model: DocumentModel, frameBottomY: number, sheetIndex = 0): number {
+  if (model.gostStamp) {
+    const stampH = sheetIndex === 0 ? STAMP_FORM5_HEIGHT_MM : STAMP_FORM6_HEIGHT_MM
+    return frameBottomY - stampH - STAMP_GAP_MM
+  }
   const mode: StampMode = model.stampMode ?? 'full'
   if (mode === 'full') return frameBottomY - STAMP_HEIGHT_MM - STAMP_GAP_MM
   if (mode === 'minimal-footer') return frameBottomY - FOOTER_MIN_HEIGHT_MM - STAMP_GAP_MM

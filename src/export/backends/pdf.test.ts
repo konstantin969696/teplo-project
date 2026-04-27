@@ -66,6 +66,24 @@ const baseModel: DocumentModel = {
   ]
 }
 
+const gostStamp = {
+  objectName: 'Жилой дом',
+  objectCode: '70-2025',
+  subsectionCode: 'ИЛО',
+  stageCode: 'П',
+  markCode: 'ОВ',
+  drawingTitle: 'Расчёт теплопотерь',
+  drawingMark: '',
+  authorName: 'Иванов И.И.',
+  checkerName: 'Петров П.П.',
+  gipName: 'Гвоздёв Г.А.',
+  normControlName: 'Соколова С.Н.',
+  approverName: '',
+  companyName: 'ООО Теплопроект',
+  companyDept: 'Отдел ОВиК',
+  date: '2026-04-27',
+}
+
 describe('pdf backend', () => {
   it('exports a Blob with application/pdf mime type', async () => {
     const blob = await exportToPdf(baseModel, { fontFamily: 'roboto' })
@@ -87,6 +105,21 @@ describe('pdf backend', () => {
   it('renders with stampMode=none', async () => {
     const model: DocumentModel = { ...baseModel, stampMode: 'none' }
     const blob = await exportToPdf(model, { fontFamily: 'roboto' })
+    expect(blob.size).toBeGreaterThan(500)
+  })
+
+  it('renders gostStamp (форма 5 на первом листе) — возвращает Blob больше базового', async () => {
+    const model: DocumentModel = {
+      ...baseModel,
+      gostStamp,
+      content: [
+        { kind: 'heading', text: 'Расчёт теплопотерь', level: 1 },
+        { kind: 'paragraph', text: 'Документ оформлен по ГОСТ Р 21.101-2020.' }
+      ]
+    }
+    const blob = await exportToPdf(model, { fontFamily: 'roboto' })
+    expect(blob).toBeInstanceOf(Blob)
+    expect(blob.type).toBe('application/pdf')
     expect(blob.size).toBeGreaterThan(500)
   })
 

@@ -11,6 +11,7 @@ import type { ContentBlock, DocumentModel, Sheet } from '../types'
 import { dimensions, effectiveOrientation } from './formats'
 import { computeFrame } from './frame'
 import { STAMP_HEIGHT_MM } from './stamp'
+import { STAMP_FORM5_HEIGHT_MM, STAMP_FORM6_HEIGHT_MM } from '../gost/stampGeometry'
 
 // Heuristic mm-heights — будут уточнены в фазах 07/08/09 под конкретный backend.
 const HEIGHT_HEADING: Record<1 | 2 | 3, number> = { 1: 12, 2: 9, 3: 7 }
@@ -47,10 +48,17 @@ function estimateBlockHeight(block: ContentBlock): number {
 const FOOTER_MIN_HEIGHT_MM = 8
 const STAMP_GAP = 2
 
-export function usableHeightMm(model: DocumentModel): number {
+export function usableHeightMm(model: DocumentModel, sheetIndex = 0): number {
   const orient = effectiveOrientation(model.format, model.orientation)
   const dims = dimensions(model.format, orient)
   const frame = computeFrame(dims.widthMm, dims.heightMm)
+
+  // Текстовый документ (gostStamp): форма 5 на первом листе, форма 6 — на последующих
+  if (model.gostStamp) {
+    const stampH = sheetIndex === 0 ? STAMP_FORM5_HEIGHT_MM : STAMP_FORM6_HEIGHT_MM
+    return Math.max(0, frame.heightMm - stampH - STAMP_GAP)
+  }
+
   const mode = model.stampMode ?? 'full'
   if (mode === 'full') return Math.max(0, frame.heightMm - STAMP_HEIGHT_MM - STAMP_GAP)
   if (mode === 'minimal-footer') return Math.max(0, frame.heightMm - FOOTER_MIN_HEIGHT_MM - STAMP_GAP)
