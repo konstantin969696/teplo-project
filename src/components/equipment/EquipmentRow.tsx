@@ -99,17 +99,23 @@ export function EquipmentRow({ room, index }: EquipmentRowProps) {
 
   // qRoom — полные теплопотери комнаты (до распределения на ТП и радиаторы).
   const [qRoom, setQRoom] = useState<number | null>(null)
+  const [qEvaporation, setQEvaporation] = useState<number>(0)
   useEffect(() => {
-    if (tOutside === null) { setQRoom(null); return }
+    if (tOutside === null) { setQRoom(null); setQEvaporation(0); return }
     const dt = room.tInside - tOutside
-    if (dt <= 0) { setQRoom(null); return }
+    if (dt <= 0) { setQRoom(null); setQEvaporation(0); return }
     let cancelled = false
     const enclosureRecord: Record<string, Enclosure> = {}
     const enclosureIds: string[] = []
     for (const e of enclosures) { enclosureRecord[e.id] = e; enclosureIds.push(e.id) }
     getEngineWorker()
       .heatLossForRooms(enclosureRecord, enclosureIds, { [room.id]: room }, [room.id], tOutside)
-      .then(([res]) => { if (!cancelled && res) setQRoom(res.qTotal) })
+      .then(([res]) => {
+        if (!cancelled && res) {
+          setQRoom(res.qTotal)
+          setQEvaporation(res.qEvaporation ?? 0)
+        }
+      })
     return () => { cancelled = true }
   }, [enclosures, room, tOutside])
 
@@ -211,6 +217,11 @@ export function EquipmentRow({ room, index }: EquipmentRowProps) {
                   {Math.round(qRequired ?? 0)}
                 </span>
               </span>
+              {qEvaporation > 0 && (
+                <span className="text-[10px] text-[var(--color-text-secondary)] mt-0.5" data-testid="q-evaporation">
+                  Испарение: {Math.round(qEvaporation)} Вт
+                </span>
+              )}
             </div>
           ) : qUfhComfort > 0 ? (
             <div className="flex flex-col items-end leading-tight">
@@ -227,10 +238,30 @@ export function EquipmentRow({ room, index }: EquipmentRowProps) {
               >
                 Комф.ТП: {Math.round(qUfhComfort)} Вт (вне баланса)
               </span>
+              {qEvaporation > 0 && (
+                <span className="text-[10px] text-[var(--color-text-secondary)] mt-0.5" data-testid="q-evaporation">
+                  Испарение: {Math.round(qEvaporation)} Вт
+                </span>
+              )}
               <span
                 className="font-semibold text-xs"
                 data-testid="q-required"
               >
+                {Math.round(qRequired ?? 0)}
+              </span>
+            </div>
+          ) : qEvaporation > 0 ? (
+            <div className="flex flex-col items-end leading-tight">
+              <span
+                className="text-xs text-[var(--color-text-secondary)]"
+                title="Общие теплопотери комнаты (Q_пом)"
+              >
+                Q_пом: {Math.round(qRoom)}
+              </span>
+              <span className="text-[10px] text-[var(--color-text-secondary)] mt-0.5" data-testid="q-evaporation">
+                Испарение: {Math.round(qEvaporation)} Вт
+              </span>
+              <span className="font-semibold text-xs" data-testid="q-required">
                 {Math.round(qRequired ?? 0)}
               </span>
             </div>

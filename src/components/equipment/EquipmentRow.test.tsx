@@ -462,3 +462,84 @@ describe('ufh cascade — comfort mode (Phase 4)', () => {
     expect(parseInt(match![0], 10)).toBeGreaterThan(0)
   })
 })
+
+// ============================================================
+// Phase pool-evaporation: Q_исп отображается в EquipmentRow
+// ============================================================
+
+const poolRoom: Room = {
+  id: 'room-POOL',
+  number: 301,
+  name: 'Бассейн',
+  floor: 1,
+  area: 50,
+  height: 3.5,
+  isCorner: false,
+  infiltrationMethod: 'rate',
+  nInfiltration: 0.5,
+  gapArea: null,
+  windSpeed: null,
+  lVentilation: 0,
+  tInside: 28,
+  poolParams: { enabled: true, fMirrorM2: 50, tWaterC: 28, phi: 0.6, mode: 'active' },
+}
+
+describe('pool evaporation — EquipmentRow (Phase 4 pool)', () => {
+  beforeEach(() => {
+    useProjectStore.setState({
+      city: { name: 'Москва', tOutside: -25, gsop: 4943, humidityZone: 'Б' },
+      tInside: 28,
+      rooms: { 'room-POOL': poolRoom },
+      roomOrder: ['room-POOL'],
+      customCities: [],
+    })
+    setupDefaultSystem()
+    useEnclosureStore.setState({
+      enclosures: {
+        'enc-pool-w': {
+          id: 'enc-pool-w', roomId: 'room-POOL', type: 'wall-ext', orientation: 'С',
+          area: 15, kValue: 0.4, nCoeff: 1.0, nOverridden: false,
+          adjacentRoomName: null, tAdjacent: null, perimeterOverride: null,
+          zoneR: [2.1, 4.3, 8.6, 14.2], parentEnclosureId: null, constructionId: null
+        },
+      },
+      enclosureOrder: ['enc-pool-w'],
+    })
+    useEquipmentStore.setState({ equipment: {}, equipmentOrder: [] })
+    useUfhLoopStore.setState({ loops: {}, loopsByRoom: {} })
+  })
+
+  it('комната с бассейном → строка "Испарение" видна', async () => {
+    renderRow(poolRoom)
+    await waitFor(() => expect(screen.getByTestId('q-required').textContent).not.toBe('—'))
+    expect(screen.getByTestId('q-evaporation')).toBeInTheDocument()
+    expect(screen.getByTestId('q-evaporation').textContent).toMatch(/Испарение/)
+    const match = (screen.getByTestId('q-evaporation').textContent ?? '').match(/\d+/)
+    expect(match).not.toBeNull()
+    expect(parseInt(match![0], 10)).toBeGreaterThan(0)
+  })
+
+  it('комната без бассейна → строки "Испарение" нет', async () => {
+    const noPoolRoom = { ...poolRoom, poolParams: undefined }
+    useProjectStore.setState({ rooms: { 'room-POOL': noPoolRoom }, roomOrder: ['room-POOL'] })
+    renderRow(noPoolRoom)
+    await waitFor(() => expect(screen.getByTestId('q-required').textContent).not.toBe('—'))
+    expect(screen.queryByTestId('q-evaporation')).not.toBeInTheDocument()
+  })
+
+  it('Q_исп включён в qRoom → qRequired с бассейном > без бассейна', async () => {
+    const noPoolRoom = { ...poolRoom, poolParams: undefined }
+    useProjectStore.setState({ rooms: { 'room-POOL': noPoolRoom }, roomOrder: ['room-POOL'] })
+    const { unmount } = renderRow(noPoolRoom)
+    await waitFor(() => expect(screen.getByTestId('q-required').textContent).not.toBe('—'))
+    const qWithoutPool = parseFloat(screen.getByTestId('q-required').textContent ?? '0')
+    unmount()
+
+    useProjectStore.setState({ rooms: { 'room-POOL': poolRoom }, roomOrder: ['room-POOL'] })
+    renderRow(poolRoom)
+    await waitFor(() => expect(screen.getByTestId('q-required').textContent).not.toBe('—'))
+    const qWithPool = parseFloat(screen.getByTestId('q-required').textContent ?? '0')
+
+    expect(qWithPool).toBeGreaterThan(qWithoutPool)
+  })
+})
