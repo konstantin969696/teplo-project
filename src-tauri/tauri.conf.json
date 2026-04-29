@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Теплопроект",
+  "productName": "Teploproekt",
   "version": "0.1.0",
   "identifier": "ru.teplo-project.app",
   "build": {
@@ -38,7 +38,7 @@
     "createUpdaterArtifacts": true,
     "windows": {
       "wix": {
-        "language": ["ru-RU", "en-US"]
+        "language": ["en-US"]
       }
     }
   },
