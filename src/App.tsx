@@ -24,10 +24,12 @@ import { useSegmentStore } from './store/segmentStore'
 import { useEquipmentStore } from './store/equipmentStore'
 import { useUfhLoopStore } from './store/ufhLoopStore'
 import { runRegistryMigration } from './services/registryMigration'
+import { useAutoUpdater } from './hooks/useAutoUpdater'
 
 const TAB_NAMES = ['Теплопотери', 'Приборы отопления', 'Гидравлика', 'Тёплый пол', 'Сводка'] as const
 
 export function App() {
+  useAutoUpdater()
   const activeTab = useProjectStore(s => s.activeTab)
   const migrationRan = useRef(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)

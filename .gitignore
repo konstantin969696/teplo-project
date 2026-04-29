@@ -4,3 +4,13 @@ dist/
 *.log
 _install.cmd
 _run-vite.cmd
+
+# Tauri
+src-tauri/target/
+*.key
+*.key.pub
+*.pem
+
+# Internal
+tasks-for-agents/
+Пример штампа/
